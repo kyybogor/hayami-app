@@ -76,28 +76,15 @@ class ProductDetailPage extends StatelessWidget {
                   Navigator.pop(context, true);
                 }
               }
-              if (value == 'hapus') {
-                // aksi hapus jika ada
-              }
             },
             itemBuilder: (context) => [
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: 'ubah',
                 child: Row(
-                  children: const [
+                  children: [
                     Icon(Icons.edit, color: Colors.black54),
                     SizedBox(width: 8),
                     Text('Ubah'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'hapus',
-                child: Row(
-                  children: const [
-                    Icon(Icons.delete, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Hapus'),
                   ],
                 ),
               ),
@@ -115,21 +102,22 @@ class ProductDetailPage extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildInfoCard('Stok di tangan',
-                      displayValue(product['stok']), Colors.pink),
-                  _buildInfoCard('Penjualan',
-                      displayValue(product['penjualan']), Colors.orange),
+                  _buildInfoCard('Kuantitas',
+                      displayValue(product['qty']), Colors.pink),
+                  _buildInfoCard('Minimal Stok',
+                      displayValue(product['minim']), Colors.orange),
                   _buildInfoCard(
-                      'Hpp', displayValue(product['hpp_value']), Colors.blue),
+                      'Maksimal Stok', displayValue(product['maxim']), Colors.blue),
                 ],
               ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 40,
-                  backgroundImage: AssetImage('./assets/akuntan.jpg'),
+                  backgroundImage: NetworkImage(
+                      'http://192.168.1.8/nindo/${product['gambar']}'),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -145,7 +133,8 @@ class ProductDetailPage extends StatelessWidget {
                       Row(children: [
                         const Icon(Icons.category),
                         const SizedBox(width: 8),
-                        Text('Kategori: ${displayValue(product['nm_kategori'])}')
+                        Text(
+                            'Kategori: ${displayValue(product['nm_kategori'])}')
                       ]),
                       const SizedBox(height: 4),
                       Row(children: [

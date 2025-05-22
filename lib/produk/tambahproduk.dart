@@ -12,6 +12,21 @@ class TambahProdukPage extends StatefulWidget {
   State<TambahProdukPage> createState() => _TambahProdukPageState();
 }
 
+// Model kategori
+class Kategori {
+  final String id;
+  final String nama;
+
+  Kategori({required this.id, required this.nama});
+
+  factory Kategori.fromJson(Map<String, dynamic> json) {
+    return Kategori(
+      id: json['id_kategori'],
+      nama: json['nm_kategori'],
+    );
+  }
+}
+
 class _TambahProdukPageState extends State<TambahProdukPage> {
   final _formKey = GlobalKey<FormState>();
 
@@ -19,10 +34,9 @@ class _TambahProdukPageState extends State<TambahProdukPage> {
   final TextEditingController _hargaController = TextEditingController();
   final TextEditingController _minimController = TextEditingController();
   final TextEditingController _maximController = TextEditingController();
-  final TextEditingController _brandController = TextEditingController();
 
-  String? _selectedKategori;
-  List<String> _kategoriList = [];
+  List<Kategori> _kategoriList = [];
+  String? _selectedKategoriId;
 
   File? _selectedImage;
   String? _base64Image;
@@ -34,15 +48,13 @@ class _TambahProdukPageState extends State<TambahProdukPage> {
   }
 
   Future<void> _fetchKategori() async {
-    final url = Uri.parse('http://192.168.1.8/hiyami/kategori.php');
+    final url = Uri.parse('http://192.168.1.8/nindo2/kategori.php');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final List<dynamic> kategoriData = json.decode(response.body);
+        final List<dynamic> data = json.decode(response.body);
         setState(() {
-          _kategoriList = kategoriData
-              .map((kategori) => kategori['nama_kategori'] as String)
-              .toList();
+          _kategoriList = data.map((json) => Kategori.fromJson(json)).toList();
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -56,10 +68,38 @@ class _TambahProdukPageState extends State<TambahProdukPage> {
     }
   }
 
+  // Mengupdate fungsi _pickImage untuk menggunakan showModalBottomSheet
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
+    // Menampilkan Modal Bottom Sheet untuk memilih media
+    final pickedFile = await showModalBottomSheet<XFile?>(
+      context: context,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text("Ambil Foto dengan Kamera"),
+              onTap: () async {
+                Navigator.pop(context, await picker.pickImage(source: ImageSource.camera));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.image),
+              title: const Text("Pilih dari Galeri"),
+              onTap: () async {
+                Navigator.pop(context, await picker.pickImage(source: ImageSource.gallery));
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // Setelah memilih gambar, lakukan proses penyimpanan
     if (pickedFile != null) {
       setState(() {
         _selectedImage = File(pickedFile.path);
@@ -71,10 +111,18 @@ class _TambahProdukPageState extends State<TambahProdukPage> {
   }
 
   Future<void> _submitProduk() async {
+    // Validasi untuk kolom gambar kosong
     if (_formKey.currentState!.validate()) {
-      if (_brandController.text.isEmpty && _selectedKategori == null) {
+      if (_selectedKategoriId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Brand atau Kategori harus diisi')),
+          const SnackBar(content: Text('Kategori harus dipilih')),
+        );
+        return;
+      }
+
+      if (_selectedImage == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gambar produk harus dipilih')),
         );
         return;
       }
@@ -87,9 +135,7 @@ class _TambahProdukPageState extends State<TambahProdukPage> {
           'minim': _minimController.text,
           'maxim': _maximController.text,
           'price': _hargaController.text,
-          'brand': _brandController.text.isNotEmpty
-              ? _brandController.text
-              : (_selectedKategori ?? ''),
+          'brand': _selectedKategoriId ?? '',
           'id_cabang': 'pusat',
         });
 
@@ -102,8 +148,7 @@ class _TambahProdukPageState extends State<TambahProdukPage> {
             Navigator.pop(context, true);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text('Gagal menambahkan produk: ${data['message']}')),
+              SnackBar(content: Text('Gagal menambahkan produk: ${data['message']}')),
             );
           }
         } else {
@@ -123,8 +168,7 @@ class _TambahProdukPageState extends State<TambahProdukPage> {
   Widget build(BuildContext context) {
     InputDecoration inputDecoration(String label) => InputDecoration(
           labelText: label,
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0),
+          contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0),
           border: InputBorder.none,
         );
 
@@ -158,78 +202,73 @@ class _TambahProdukPageState extends State<TambahProdukPage> {
               buildTextField(
                 controller: _namaController,
                 label: 'Nama Produk',
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Masukkan nama produk' : null,
+                validator: (v) => (v == null || v.isEmpty) ? 'Masukkan nama produk' : null,
               ),
               const SizedBox(height: 16),
               buildTextField(
                 controller: _hargaController,
                 label: 'Harga Jual',
                 keyboardType: TextInputType.number,
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Masukkan harga jual' : null,
+                validator: (v) => (v == null || v.isEmpty) ? 'Masukkan harga jual' : null,
               ),
               const SizedBox(height: 16),
               buildTextField(
                 controller: _minimController,
                 label: 'Minimal Stok',
                 keyboardType: TextInputType.number,
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Masukkan minimal stok' : null,
+                validator: (v) => (v == null || v.isEmpty) ? 'Masukkan minimal stok' : null,
               ),
               const SizedBox(height: 16),
               buildTextField(
                 controller: _maximController,
                 label: 'Maksimal Stok',
                 keyboardType: TextInputType.number,
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Masukkan maksimal stok' : null,
+                validator: (v) => (v == null || v.isEmpty) ? 'Masukkan maksimal stok' : null,
               ),
               const SizedBox(height: 16),
               Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
                   border: Border.all(color: Colors.blue),
+                  borderRadius: BorderRadius.circular(30),
                 ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: DropdownButtonFormField<String>(
-                  value: _selectedKategori,
+                  decoration: inputDecoration('Pilih Kategori'),
+                  value: _selectedKategoriId,
+                  items: _kategoriList.map((kategori) {
+                    return DropdownMenuItem<String>(
+                      value: kategori.id,
+                      child: Text(kategori.nama),
+                    );
+                  }).toList(),
                   onChanged: (value) {
                     setState(() {
-                      _selectedKategori = value;
+                      _selectedKategoriId = value;
                     });
                   },
-                  items: _kategoriList
-                      .map(
-                        (kategori) => DropdownMenuItem<String>(
-                          value: kategori,
-                          child: Text(kategori),
-                        ),
-                      )
-                      .toList(),
-                  decoration: inputDecoration('Kategori'),
-                  validator: (v) => v == null ? 'Pilih kategori' : null,
+                  validator: (value) => value == null ? 'Pilih kategori produk' : null,
                 ),
               ),
               const SizedBox(height: 16),
-              buildTextField(
-                controller: _brandController,
-                label: 'Brand (opsional)',
-                validator: null,
-              ),
-              const SizedBox(height: 16),
-              Text('Gambar Produk:',
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Gambar Produk:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: _pickImage,
                 child: Container(
-                  height: 150,
+                  height: 250, // Adjusted to allow larger image preview
+                  width: double.infinity,
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.blue),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: _selectedImage != null
-                      ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(
+                            _selectedImage!,
+                            fit: BoxFit.contain, // Use BoxFit.contain to make sure image fits fully
+                          ),
+                        )
                       : const Center(child: Text('Tap untuk memilih gambar')),
                 ),
               ),
@@ -237,8 +276,7 @@ class _TambahProdukPageState extends State<TambahProdukPage> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(30),
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48)),
+                  style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                   onPressed: _submitProduk,
                   child: const Text('Simpan Produk'),
                 ),

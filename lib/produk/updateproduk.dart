@@ -21,10 +21,9 @@ class _EditProductPageState extends State<EditProductPage> {
   late TextEditingController _hargaController;
   late TextEditingController _minimController;
   late TextEditingController _maximController;
-  late TextEditingController _brandController;
 
-  String? _selectedKategori;
-  List<String> _kategoriList = [];
+  String? _selectedKategoriId;
+  List<Map<String, dynamic>> _kategoriList = [];
 
   File? _selectedImage;
   String? _base64Image;
@@ -32,12 +31,18 @@ class _EditProductPageState extends State<EditProductPage> {
   @override
   void initState() {
     super.initState();
-    _namaController = TextEditingController(text: widget.product['nm_product'] ?? '');
-    _hargaController = TextEditingController(text: widget.product['price']?.toString() ?? '');
-    _minimController = TextEditingController(text: widget.product['minim']?.toString() ?? '');
-    _maximController = TextEditingController(text: widget.product['maxim']?.toString() ?? '');
-    _brandController = TextEditingController(text: widget.product['brand'] ?? '');
-    _selectedKategori = widget.product['brand'];
+    _namaController =
+        TextEditingController(text: widget.product['nm_product'] ?? '');
+    _hargaController =
+        TextEditingController(text: widget.product['price']?.toString() ?? '');
+    _minimController =
+        TextEditingController(text: widget.product['minim']?.toString() ?? '');
+    _maximController =
+        TextEditingController(text: widget.product['maxim']?.toString() ?? '');
+    
+    // Initialize the selected category ID from the product data
+    _selectedKategoriId = widget.product['brand']?.toString(); 
+
     _fetchKategori();
   }
 
@@ -47,45 +52,57 @@ class _EditProductPageState extends State<EditProductPage> {
     _hargaController.dispose();
     _minimController.dispose();
     _maximController.dispose();
-    _brandController.dispose();
     super.dispose();
   }
 
   Future<void> _fetchKategori() async {
-    final url = Uri.parse('http://192.168.1.8/hiyami/kategori.php');
+    final url = Uri.parse('http://192.168.1.8/nindo2/kategori.php');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final List<dynamic> kategoriData = json.decode(response.body);
         setState(() {
-          _kategoriList = kategoriData.map((kategori) => kategori['nama_kategori'] as String).toList();
-          if (_selectedKategori != null && !_kategoriList.contains(_selectedKategori)) {
-            _kategoriList.add(_selectedKategori!);
+          _kategoriList = kategoriData
+              .map((kategori) => {
+                    'id_kategori': kategori['id_kategori'].toString(),
+                    'nama_kategori': kategori['nm_kategori'].toString(),
+                  })
+              .toList();
+
+          // Ensure that the selected category ID exists in the list
+          if (_selectedKategoriId != null && _selectedKategoriId!.isNotEmpty) {
+            // Check if the selected category is in the list
+            if (!_kategoriList.any((kategori) =>
+                kategori['id_kategori'] == _selectedKategoriId)) {
+              _selectedKategoriId = null; // Reset if not found
+            }
           }
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Terjadi kesalahan jaringan')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Terjadi kesalahan jaringan')));
     }
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      final file = File(pickedFile.path);
-      final bytes = await file.readAsBytes();
-      setState(() {
-        _selectedImage = file;
-        _base64Image = base64Encode(bytes);
-      });
-    }
+Future<void> _pickImage(ImageSource source) async {
+  final picker = ImagePicker();
+  final pickedFile = await picker.pickImage(source: source);
+  if (pickedFile != null) {
+    final file = File(pickedFile.path);
+    final bytes = await file.readAsBytes();
+    setState(() {
+      _selectedImage = file;
+      _base64Image = base64Encode(bytes);
+    });
   }
+}
 
   Future<void> _submitEdit() async {
     if (_formKey.currentState!.validate()) {
-      if (_brandController.text.isEmpty && _selectedKategori == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Brand atau Kategori harus diisi')));
+      if (_selectedKategoriId == null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Pilih kategori')));
         return;
       }
 
@@ -102,27 +119,31 @@ class _EditProductPageState extends State<EditProductPage> {
             'minim': _minimController.text,
             'maxim': _maximController.text,
             'price': _hargaController.text,
-            'brand': _brandController.text.isNotEmpty ? _brandController.text : (_selectedKategori ?? ''),
+            'brand': _selectedKategoriId, // Send the selected category ID to the backend
             'id_cabang': 'pusat',
           }),
         );
 
         final data = json.decode(response.body);
         if (data['status'] == 'success') {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Produk berhasil diperbarui')));
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Produk berhasil diperbarui')));
           Navigator.pop(context, true);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: ${data['message']}')));
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Gagal: ${data['message']}')));
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal mengirim data')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Gagal mengirim data')));
       }
     }
   }
 
   InputDecoration inputDecoration(String label) => InputDecoration(
         labelText: label,
-        contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0),
         border: InputBorder.none,
       );
 
@@ -158,28 +179,32 @@ class _EditProductPageState extends State<EditProductPage> {
               buildTextField(
                 controller: _namaController,
                 label: 'Nama Produk',
-                validator: (v) => (v == null || v.isEmpty) ? 'Masukkan nama produk' : null,
+                validator: (v) =>
+                    (v == null || v.isEmpty) ? 'Masukkan nama produk' : null,
               ),
               const SizedBox(height: 16),
               buildTextField(
                 controller: _hargaController,
                 label: 'Harga Jual',
                 keyboardType: TextInputType.number,
-                validator: (v) => (v == null || v.isEmpty) ? 'Masukkan harga jual' : null,
+                validator: (v) =>
+                    (v == null || v.isEmpty) ? 'Masukkan harga jual' : null,
               ),
               const SizedBox(height: 16),
               buildTextField(
                 controller: _minimController,
                 label: 'Minimal Stok',
                 keyboardType: TextInputType.number,
-                validator: (v) => (v == null || v.isEmpty) ? 'Masukkan minimal stok' : null,
+                validator: (v) =>
+                    (v == null || v.isEmpty) ? 'Masukkan minimal stok' : null,
               ),
               const SizedBox(height: 16),
               buildTextField(
                 controller: _maximController,
                 label: 'Maksimal Stok',
                 keyboardType: TextInputType.number,
-                validator: (v) => (v == null || v.isEmpty) ? 'Masukkan maksimal stok' : null,
+                validator: (v) =>
+                    (v == null || v.isEmpty) ? 'Masukkan maksimal stok' : null,
               ),
               const SizedBox(height: 16),
               Container(
@@ -188,33 +213,70 @@ class _EditProductPageState extends State<EditProductPage> {
                   border: Border.all(color: Colors.blue),
                 ),
                 child: DropdownButtonFormField<String>(
-                  value: _selectedKategori,
-                  onChanged: (value) => setState(() => _selectedKategori = value),
-                  items: _kategoriList.map((kategori) => DropdownMenuItem(value: kategori, child: Text(kategori))).toList(),
+                  value: _selectedKategoriId,
+                  onChanged: (value) =>
+                      setState(() => _selectedKategoriId = value),
+                  items: _kategoriList
+                      .map<DropdownMenuItem<String>>((kategori) {
+                    return DropdownMenuItem<String>(
+                      value: kategori['id_kategori']!,
+                      child: Text(kategori['nama_kategori']!),
+                    );
+                  }).toList(),
                   decoration: inputDecoration('Kategori'),
-                  validator: (v) => v == null || v.isEmpty ? 'Pilih kategori' : null,
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Pilih kategori' : null,
                 ),
-              ),
-              const SizedBox(height: 16),
-              buildTextField(
-                controller: _brandController,
-                label: 'Brand (opsional)',
               ),
               const SizedBox(height: 24),
               if (_selectedImage != null)
                 Image.file(_selectedImage!, height: 150)
-              else if (widget.product['gambar'] != null && widget.product['gambar'].toString().isNotEmpty)
-                Image.network('http://192.168.1.8/nindo2/' + widget.product['gambar'], height: 150),
+              else if (widget.product['gambar'] != null &&
+                  widget.product['gambar'].toString().isNotEmpty)
+                Image.network(
+                    'http://192.168.1.8/nindo/' + widget.product['gambar'],
+                    height: 150),
               const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.image),
-                label: const Text("Ganti Gambar"),
+ElevatedButton.icon(
+  onPressed: () {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text("Ambil Foto dengan Kamera"),
+                onTap: () {
+                  _pickImage(ImageSource.camera);
+                  Navigator.pop(context);
+                },
               ),
+              ListTile(
+                leading: const Icon(Icons.image),
+                title: const Text("Pilih dari Galeri"),
+                onTap: () {
+                  _pickImage(ImageSource.gallery); // Use the gallery
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  },
+  icon: const Icon(Icons.image),
+  label: const Text("Ganti Gambar"),
+),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _submitEdit,
-                style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48)),
                 child: const Text('Simpan Perubahan'),
               ),
             ],
