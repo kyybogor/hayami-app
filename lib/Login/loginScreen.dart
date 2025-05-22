@@ -13,34 +13,42 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
   void _login() async {
-    final email = _emailController.text.trim();
+    final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
+    // Validasi input
+    if (username.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email dan password wajib diisi.")),
+        const SnackBar(content: Text("Username dan password wajib diisi.")),
       );
       return;
     }
 
     setState(() => _isLoading = true);
-    final response = await ApiService.loginUser(email, password);
+
+    // Memanggil login API
+    final response = await ApiService.loginUser(username, password);
+    
     setState(() => _isLoading = false);
 
+    // Menangani respons sukses dan error
     if (response['status'] == 'success') {
+      // Navigasi ke Dashboard
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const Dashboardscreen()),
       );
     } else {
+      // Menampilkan pesan error jika login gagal
+      String message = response['message'] ?? 'Login gagal.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response['message'] ?? 'Login gagal.')),
+        SnackBar(content: Text(message)),
       );
     }
   }
@@ -75,23 +83,22 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 20),
                     const Text(
-                      'Silakan masukkan email dan password\nuntuk masuk ke Hayami.',
+                      'Silakan masukkan username dan password\nuntuk masuk ke Hayami.',
                       style: TextStyle(color: Colors.white),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
                     TextField(
-                      controller: _emailController,
+                      controller: _usernameController,
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.email_outlined),
-                        labelText: 'Email',
+                        prefixIcon: const Icon(Icons.account_circle_outlined),
+                        labelText: 'Username',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),

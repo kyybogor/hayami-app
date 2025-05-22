@@ -17,38 +17,6 @@ class Customerdetailscreen extends StatelessWidget {
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.blue),
         elevation: 1,
-        actions: [
-  Padding(
-    padding: const EdgeInsets.only(right: 16.0),
-    child: OutlinedButton.icon(
-      onPressed: () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => EditCustomerScreen(customer: customer),
-          ),
-        );
-
-        if (result != null && result is Map<String, dynamic>) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Data berhasil diperbarui")),
-          );
-          Navigator.of(context).pop(result);
-        }
-      },
-      icon: const Icon(Icons.edit, color: Colors.blue, size: 18),
-      label: const Text("Edit", style: TextStyle(color: Colors.blue)),
-      style: OutlinedButton.styleFrom(
-        side: const BorderSide(color: Colors.blue),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-    ),
-  ),
-],
-
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -66,6 +34,8 @@ class Customerdetailscreen extends StatelessWidget {
             ],
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min, // ⬅️ Tambahkan ini
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               CustomTile(
                 icon: Icons.person,
@@ -89,6 +59,40 @@ class Customerdetailscreen extends StatelessWidget {
                 icon: Icons.location_on,
                 title: 'Alamat',
                 subtitle: customer['address'] ?? '-',
+              ),
+              const SizedBox(height: 12), // jarak atas tombol
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            EditCustomerScreen(customer: customer),
+                      ),
+                    );
+
+                    if (result != null && result is Map<String, dynamic>) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text("Data berhasil diperbarui")),
+                      );
+                      Navigator.of(context).pop(result);
+                    }
+                  },
+                  icon: const Icon(Icons.edit, color: Colors.blue, size: 18),
+                  label:
+                      const Text("Edit", style: TextStyle(color: Colors.blue)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.blue),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
               ),
             ],
           ),

@@ -51,11 +51,7 @@ class _DashboardscreenState extends State<Dashboardscreen> {
     {'icon': Icons.money_off, 'label': 'Biaya', 'color': Colors.orangeAccent},
     {'icon': Icons.inventory, 'label': 'Produk', 'color': Colors.green},
     {'icon': Icons.bar_chart, 'label': 'Laporan', 'color': Colors.purple},
-    {
-      'icon': Icons.account_balance,
-      'label': 'Bank',
-      'color': Colors.teal
-    },
+    {'icon': Icons.account_balance, 'label': 'Bank', 'color': Colors.teal},
     {'icon': Icons.domain, 'label': 'Aset Tetap', 'color': Colors.indigo},
     {'icon': Icons.contacts, 'label': 'Kontak', 'color': Colors.brown},
   ];
@@ -630,14 +626,45 @@ class _KledoDrawerState extends State<KledoDrawer> {
                           }
 
                           if (item['title'] == 'Keluar') {
-                            destination = const LoginPage();
-                          }
-
-                          if (destination != null) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (_) => destination!),
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text('Konfirmasi'),
+                                  content: const Text(
+                                      'Apakah Anda yakin ingin keluar?'),
+                                  actions: [
+                                    TextButton(
+                                      child: const Text('Batal'),
+                                      onPressed: () {
+                                        Navigator.of(context)
+                                            .pop();
+                                      },
+                                    ),
+                                    TextButton(
+                                      child: const Text('Keluar'),
+                                      onPressed: () {
+                                        Navigator.of(context)
+                                            .pop();
+                                        Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const LoginPage()),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
                             );
+                          } else {
+                            if (destination != null) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (_) => destination!),
+                              );
+                            }
                           }
                         },
                       ),
@@ -650,21 +677,6 @@ class _KledoDrawerState extends State<KledoDrawer> {
                 );
               }
             }).toList(),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // WhatsApp action
-                },
-                icon: const FaIcon(FontAwesomeIcons.whatsapp),
-                label: const Text('Halo, ada yang bisa saya bantu?'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 40),
-                ),
-              ),
-            ),
           ],
         ),
       ),

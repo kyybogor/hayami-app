@@ -95,24 +95,6 @@ class _BankDetailPageState extends State<BankDetailPage> {
         backgroundColor: Colors.grey[100],
         iconTheme: const IconThemeData(color: Colors.blue),
         elevation: 1,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: OutlinedButton.icon(
-              onPressed: _editBankDialog,
-              icon: const Icon(Icons.edit, color: Colors.blue, size: 18),
-              label: const Text("Edit", style: TextStyle(color: Colors.blue)),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.blue),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-            ),
-          ),
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -124,6 +106,7 @@ class _BankDetailPageState extends State<BankDetailPage> {
             padding: const EdgeInsets.all(20.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildInfoTile(
                   icon: Icons.account_balance,
@@ -134,6 +117,25 @@ class _BankDetailPageState extends State<BankDetailPage> {
                   icon: Icons.credit_card,
                   label: 'No. Rekening',
                   value: bank['no_rekening'] ?? '',
+                ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: OutlinedButton.icon(
+                    onPressed: _editBankDialog,
+                    icon:
+                        const Icon(Icons.edit, color: Colors.blue, size: 18),
+                    label: const Text("Edit",
+                        style: TextStyle(color: Colors.blue)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.blue),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                    ),
+                  ),
                 ),
               ],
             ),

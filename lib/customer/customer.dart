@@ -133,45 +133,49 @@ class _CustomerscreenState extends State<Customerscreen> {
                   itemCount: filteredCustomers.length,
                   itemBuilder: (context, index) {
                     final customer = filteredCustomers[index];
-                    return ListTile(
-                      title: Text(customer["name"] ?? ''),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(customer["jenis"] ?? ''),
-                          Text(customer["phone"] ?? ''),
-                        ],
-                      ),
-                      trailing: const Icon(Icons.arrow_forward_ios,
-                          size: 16, color: Colors.grey),
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                Customerdetailscreen(customer: customer),
-                          ),
-                        );
+                    return Container(
+  decoration: const BoxDecoration(
+    border: Border(
+      bottom: BorderSide(color: Colors.grey, width: 0.5),
+    ),
+  ),
+  child: ListTile(
+    title: Text(customer["name"] ?? ''),
+    subtitle: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(customer["jenis"] ?? ''),
+        Text(customer["phone"] ?? ''),
+      ],
+    ),
+    trailing: const Icon(Icons.chevron_right), // ← warna ikon hitam
+    onTap: () async {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Customerdetailscreen(customer: customer),
+        ),
+      );
 
-                        if (result == 'deleted') {
-                          await fetchCustomers();
-                          setState(() {
-                            dataChanged = true;
-                          });
-                        } else if (result != null &&
-                            result is Map<String, dynamic>) {
-                          setState(() {
-                            int i = customers
-                                .indexWhere((c) => c["id"] == result["id"]);
-                            if (i != -1) {
-                              customers[i] = result;
-                              _onSearchChanged();
-                              dataChanged = true;
-                            }
-                          });
-                        }
-                      },
-                    );
+      if (result == 'deleted') {
+        await fetchCustomers();
+        setState(() {
+          dataChanged = true;
+        });
+      } else if (result != null && result is Map<String, dynamic>) {
+        setState(() {
+          int i = customers.indexWhere((c) => c["id"] == result["id"]);
+          if (i != -1) {
+            customers[i] = result;
+            _onSearchChanged();
+            dataChanged = true;
+          }
+        });
+      }
+    },
+  ),
+);
+
                   },
                 ),
         ),
