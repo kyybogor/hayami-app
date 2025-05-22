@@ -17,9 +17,11 @@ class ProdukPage extends StatefulWidget {
 class _ProdukPageState extends State<ProdukPage> {
   bool _showChart = true;
   List<Map<String, dynamic>> _produkList = [];
+  List<Map<String, dynamic>> _filteredProdukList = [];
   int totalProduk = 0;
   int produkHampirHabis = 0;
   int produkHabis = 0;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -40,26 +42,38 @@ class _ProdukPageState extends State<ProdukPage> {
     }
   }
 
-Future<void> _fetchProduk() async {
-  final url = Uri.parse('http://192.168.1.8/nindo/produk.php');
+  Future<void> _fetchProduk() async {
+    final url = Uri.parse('http://192.168.1.8/nindo/produk.php');
 
-  try {
-    final response = await http.get(url);
-    if (response.statusCode == 200) {
-      // decode langsung jadi List karena root JSON array
-      final List<dynamic> data = json.decode(response.body);
-      setState(() {
-        _produkList = data.map((e) => Map<String, dynamic>.from(e)).toList();
-        _calculateProduk();
-      });
-    } else {
-      print('Failed to load produk');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _produkList = data.map((e) => Map<String, dynamic>.from(e)).toList();
+          _filteredProdukList = _produkList;
+          _calculateProduk();
+        });
+      } else {
+        print('Failed to load produk');
+      }
+    } catch (e) {
+      print('Error: $e');
     }
-  } catch (e) {
-    print('Error: $e');
   }
-}
 
+  void _searchProduk(String query) {
+    final filtered = _produkList.where((produk) {
+      final name = produk['nm_product'].toLowerCase();
+      final searchTerm = query.toLowerCase();
+      return name.contains(searchTerm);
+    }).toList();
+
+    setState(() {
+      _searchQuery = query;
+      _filteredProdukList = filtered;
+    });
+  }
 
   void _calculateProduk() {
     int total = 0;
@@ -67,7 +81,7 @@ Future<void> _fetchProduk() async {
     int habis = 0;
 
     for (var produk in _produkList) {
-      int stok = int.tryParse(produk['stok'].toString()) ?? 0;
+      int stok = int.tryParse(produk['qty'].toString()) ?? 0;
       total++;
 
       if (stok == 0) {
@@ -114,72 +128,74 @@ Future<void> _fetchProduk() async {
           );
 
           if (result == true) {
-            _fetchProduk(); // Refresh list setelah tambah
+            _fetchProduk();
           }
         },
         child: const Icon(Icons.add),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.zero, // Full width list
         children: [
-          TextField(
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
-              hintText: 'Cari',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: 'Cari',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              onChanged: _searchProduk,
             ),
           ),
-          const SizedBox(height: 12),
-
-          // Status Cards
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: [
-                _buildStatusCard(
-                    'Produk Tersedia',
-                    (totalProduk - produkHampirHabis - produkHabis).toString(),
-                    Colors.green),
-                _buildStatusCard('Produk Hampir Habis',
-                    produkHampirHabis.toString(), Colors.orange),
-                _buildStatusCard(
-                    'Produk Habis', produkHabis.toString(), Colors.red),
-                _buildStatusCard(
-                    'Total Produk', totalProduk.toString(), Colors.blue),
-              ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: [
+                  _buildStatusCard('Produk Tersedia',
+                      (totalProduk - produkHampirHabis - produkHabis).toString(), Colors.green),
+                  _buildStatusCard('Produk Hampir Habis',
+                      produkHampirHabis.toString(), Colors.orange),
+                  _buildStatusCard('Produk Habis', produkHabis.toString(), Colors.red),
+                  _buildStatusCard('Total Produk', totalProduk.toString(), Colors.blue),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),
-
-          InkWell(
-            onTap: () {
-              setState(() {
-                _showChart = !_showChart;
-              });
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _showChart ? 'Sembunyikan' : 'Lihat Selengkapnya',
-                  style: const TextStyle(
-                      color: Colors.blue, fontWeight: FontWeight.bold),
-                ),
-                Icon(_showChart ? Icons.expand_less : Icons.expand_more),
-              ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _showChart = !_showChart;
+                });
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _showChart ? 'Sembunyikan' : 'Lihat Selengkapnya',
+                    style: const TextStyle(
+                        color: Colors.blue, fontWeight: FontWeight.bold),
+                  ),
+                  Icon(_showChart ? Icons.expand_less : Icons.expand_more),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 12),
-
           if (_showChart)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
+                  const SizedBox(width: 16),
                   _buildChartPlaceholder('Pergerakan Stok', screenWidth),
                   _buildChartPlaceholder('Jenis Produk', screenWidth),
                 ],
@@ -187,42 +203,48 @@ Future<void> _fetchProduk() async {
             ),
           const SizedBox(height: 16),
 
-          // List Produk
-          ..._produkList.map((produk) => _buildProductItem(produk)).toList(),
+          // List produk (tanpa padding)
+          ..._filteredProdukList.map((produk) => _buildProductItem(produk)).toList(),
         ],
       ),
     );
   }
 
-Widget _buildProductItem(Map<String, dynamic> produk) {
-  return ListTile(
-    title: Text(produk['nm_product'] ?? ''), // sesuai key PHP "nm_product"
-    subtitle: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildProductItem(Map<String, dynamic> produk) {
+    return Column(
       children: [
-        Text('${formatRupiah(produk['price'])}'), // sesuai key PHP "price"
-        Text('${produk['nm_kategori'] ?? '-'}'),  // sesuai key PHP "nm_kategori"
-      ],
-    ),
-    onTap: () async {
-      final result = await Navigator.push<bool>(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ProductDetailPage(product: produk),
+        Container(
+          color: Colors.white,
+          child: ListTile(
+            title: Text(produk['nm_product'] ?? ''),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${formatRupiah(produk['price'])}'),
+                Text('${produk['nm_kategori'] ?? '-'}'),
+              ],
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              final result = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProductDetailPage(product: produk),
+                ),
+              );
+              if (result == true) {
+                _fetchProduk();
+              }
+            },
+          ),
         ),
-      );
-
-      if (result == true) {
-        _fetchProduk(); // Refresh data setelah edit berhasil
-      }
-    },
-  );
-}
-
+        const Divider(height: 1, color: Colors.black12),
+      ],
+    );
+  }
 
   Widget _buildStatusCard(String title, String count, Color color) {
     final screenWidth = MediaQuery.of(context).size.width;
-
     return Container(
       width: screenWidth * 0.65,
       height: 80,
