@@ -165,126 +165,167 @@ class _TambahProdukPageState extends State<TambahProdukPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    InputDecoration inputDecoration(String label) => InputDecoration(
-          labelText: label,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0),
-          border: InputBorder.none,
-        );
+Widget build(BuildContext context) {
+  InputDecoration inputDecoration(String label, IconData icon) => InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      );
 
-    Widget buildTextField({
-      required TextEditingController controller,
-      required String label,
-      TextInputType? keyboardType,
-      String? Function(String?)? validator,
-    }) =>
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.blue),
-          ),
-          child: TextFormField(
-            controller: controller,
-            decoration: inputDecoration(label),
-            keyboardType: keyboardType,
-            validator: validator,
-          ),
-        );
+  Widget buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: TextFormField(
+          controller: controller,
+          decoration: inputDecoration(label, icon),
+          keyboardType: keyboardType,
+          validator: validator,
+        ),
+      );
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Tambah Produk')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              buildTextField(
-                controller: _namaController,
-                label: 'Nama Produk',
-                validator: (v) => (v == null || v.isEmpty) ? 'Masukkan nama produk' : null,
-              ),
-              const SizedBox(height: 16),
-              buildTextField(
-                controller: _hargaController,
-                label: 'Harga Jual',
-                keyboardType: TextInputType.number,
-                validator: (v) => (v == null || v.isEmpty) ? 'Masukkan harga jual' : null,
-              ),
-              const SizedBox(height: 16),
-              buildTextField(
-                controller: _minimController,
-                label: 'Minimal Stok',
-                keyboardType: TextInputType.number,
-                validator: (v) => (v == null || v.isEmpty) ? 'Masukkan minimal stok' : null,
-              ),
-              const SizedBox(height: 16),
-              buildTextField(
-                controller: _maximController,
-                label: 'Maksimal Stok',
-                keyboardType: TextInputType.number,
-                validator: (v) => (v == null || v.isEmpty) ? 'Masukkan maksimal stok' : null,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.blue),
-                  borderRadius: BorderRadius.circular(30),
+  return Scaffold(
+    appBar: AppBar(
+        centerTitle: true,
+        title: const Text(
+          "Tambah Produk",
+          style: TextStyle(color: Colors.blue, fontSize: 20),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.blue),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+    body: SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Informasi Produk',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    buildTextField(
+                      controller: _namaController,
+                      label: 'Nama Produk',
+                      icon: Icons.label,
+                      validator: (v) => (v == null || v.isEmpty) ? 'Masukkan nama produk' : null,
+                    ),
+                    buildTextField(
+                      controller: _hargaController,
+                      label: 'Harga Jual',
+                      icon: Icons.attach_money,
+                      keyboardType: TextInputType.number,
+                      validator: (v) => (v == null || v.isEmpty) ? 'Masukkan harga jual' : null,
+                    ),
+                    buildTextField(
+                      controller: _minimController,
+                      label: 'Minimal Stok',
+                      icon: Icons.remove_circle_outline,
+                      keyboardType: TextInputType.number,
+                      validator: (v) => (v == null || v.isEmpty) ? 'Masukkan minimal stok' : null,
+                    ),
+                    buildTextField(
+                      controller: _maximController,
+                      label: 'Maksimal Stok',
+                      icon: Icons.add_circle_outline,
+                      keyboardType: TextInputType.number,
+                      validator: (v) => (v == null || v.isEmpty) ? 'Masukkan maksimal stok' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      decoration: inputDecoration('Pilih Kategori', Icons.category),
+                      value: _selectedKategoriId,
+                      items: _kategoriList.map((kategori) {
+                        return DropdownMenuItem<String>(
+                          value: kategori.id,
+                          child: Text(kategori.nama),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedKategoriId = value;
+                        });
+                      },
+                      validator: (value) => value == null ? 'Pilih kategori produk' : null,
+                    ),
+                  ],
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: DropdownButtonFormField<String>(
-                  decoration: inputDecoration('Pilih Kategori'),
-                  value: _selectedKategoriId,
-                  items: _kategoriList.map((kategori) {
-                    return DropdownMenuItem<String>(
-                      value: kategori.id,
-                      child: Text(kategori.nama),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedKategoriId = value;
-                    });
-                  },
-                  validator: (value) => value == null ? 'Pilih kategori produk' : null,
-                ),
               ),
-              const SizedBox(height: 16),
-              const Text('Gambar Produk:', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: _pickImage,
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Gambar Produk',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _pickImage,
+              child: Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 2,
                 child: Container(
-                  height: 250, // Adjusted to allow larger image preview
+                  height: 220,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.blue),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: _selectedImage != null
                       ? ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                           child: Image.file(
                             _selectedImage!,
-                            fit: BoxFit.contain, // Use BoxFit.contain to make sure image fits fully
+                            fit: BoxFit.contain,
                           ),
                         )
-                      : const Center(child: Text('Tap untuk memilih gambar')),
+                      : Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.add_a_photo, size: 50, color: Colors.grey),
+                              SizedBox(height: 8),
+                              Text('Tap untuk memilih gambar'),
+                            ],
+                          ),
+                        ),
                 ),
               ),
-              const SizedBox(height: 24),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(30),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                  onPressed: _submitProduk,
-                  child: const Text('Simpan Produk'),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.save),
+                label: const Text('Simpan Produk'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
+                onPressed: _submitProduk,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 }

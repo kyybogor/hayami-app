@@ -18,46 +18,69 @@ class _TambahCustomerScreenState extends State<TambahCustomerScreen> {
   final List<String> jenisList = ['Customer', 'Supplier'];
 
   Future<void> _saveData() async {
-  final data = {
-    "jenis": selectedJenis,
-    "nm_supp": _nameController.text,
-    "hp": _phoneController.text,
-    "email": "", // Kosongkan jika tidak diinput
-    "alamat": _addressController.text,
-  };
+    final data = {
+      "jenis": selectedJenis,
+      "nm_supp": _nameController.text,
+      "hp": _phoneController.text,
+      "email": "",
+      "alamat": _addressController.text,
+    };
 
-  final response = await http.post(
-    Uri.parse("http://192.168.1.10/nindo/get_supplier.php"),
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: data,
-  );
+    final response = await http.post(
+      Uri.parse("http://192.168.1.10/nindo/get_supplier.php"),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: data,
+    );
 
-  if (response.statusCode == 200) {
-    final result = json.decode(response.body);
-    if (result["status"] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Data berhasil disimpan")),
-      );
-      Navigator.pop(context, true);
+    if (response.statusCode == 200) {
+      final result = json.decode(response.body);
+      if (result["status"] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil disimpan")),
+        );
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result["message"] ?? "Gagal menyimpan")),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result["message"] ?? "Gagal menyimpan")),
+        const SnackBar(content: Text("Gagal menyimpan data ke server")),
       );
     }
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Gagal menyimpan data ke server")),
-    );
   }
-}
 
+  InputDecoration inputDecoration(String label, IconData icon) => InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      );
+
+  Widget buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          decoration: inputDecoration(label, icon),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         centerTitle: true,
         title: const Text(
@@ -72,89 +95,85 @@ class _TambahCustomerScreenState extends State<TambahCustomerScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<String>(
-              value: selectedJenis,
-              items: jenisList.map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              onChanged: (newValue) {
-                setState(() {
-                  selectedJenis = newValue!;
-                });
-              },
-              decoration: const InputDecoration(
-                labelText: 'Jenis',
-                border: UnderlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Nama',
-                border: UnderlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Phone',
-                border: UnderlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _addressController,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Alamat',
-                border: UnderlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 32),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+        padding: const EdgeInsets.all(16),
+        child: Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 3,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
-                OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.grey[700],
-                    side: BorderSide(color: Colors.grey[400]!),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
-                  ),
-                  child: const Text("Cancel"),
+                DropdownButtonFormField<String>(
+                  value: selectedJenis,
+                  items: jenisList.map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    setState(() {
+                      selectedJenis = newValue!;
+                    });
+                  },
+                  decoration: inputDecoration("Jenis", Icons.category),
                 ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: _saveData,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 8),
+                buildTextField(
+                  controller: _nameController,
+                  label: "Nama",
+                  icon: Icons.person,
+                ),
+                buildTextField(
+                  controller: _phoneController,
+                  label: "Nomor HP",
+                  icon: Icons.phone,
+                  keyboardType: TextInputType.phone,
+                ),
+                buildTextField(
+                  controller: _addressController,
+                  label: "Alamat",
+                  icon: Icons.location_on,
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.cancel),
+                      label: const Text("Batal"),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[400]!),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                      ),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 28, vertical: 12),
-                    elevation: 2,
-                  ),
-                  child: const Text("Save"),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.save),
+                      label: const Text("Simpan"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 28, vertical: 12),
+                      ),
+                      onPressed: _saveData,
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

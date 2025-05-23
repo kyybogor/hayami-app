@@ -50,7 +50,7 @@ class _DashboardscreenState extends State<Dashboardscreen> {
     },
     {'icon': Icons.money_off, 'label': 'Biaya', 'color': Colors.orangeAccent},
     {'icon': Icons.inventory, 'label': 'Produk', 'color': Colors.green},
-    {'icon': Icons.bar_chart, 'label': 'Laporan', 'color': Colors.purple},
+    {'icon': Icons.bar_chart, 'label': 'Customer', 'color': Colors.purple},
     {'icon': Icons.account_balance, 'label': 'Bank', 'color': Colors.teal},
     {'icon': Icons.domain, 'label': 'Aset Tetap', 'color': Colors.indigo},
     {'icon': Icons.contacts, 'label': 'Kontak', 'color': Colors.brown},
@@ -165,7 +165,7 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                               MaterialPageRoute(
                                   builder: (_) => const ProdukPage()));
                           break;
-                        case 'Laporan':
+                        case 'Customer':
                           Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -416,7 +416,7 @@ class _KledoDrawerState extends State<KledoDrawer> {
     {'icon': Icons.money_off, 'title': 'Biaya'},
     {'icon': Icons.inventory_2, 'title': 'Produk'},
     {'icon': Icons.local_shipping, 'title': 'Inventori'},
-    {'icon': Icons.bar_chart, 'title': 'Laporan'},
+    {'icon': Icons.bar_chart, 'title': 'Customer'},
     {'icon': Icons.account_balance, 'title': 'Bank'},
     {'icon': Icons.person, 'title': 'Akun'},
     {'icon': Icons.domain, 'title': 'Aset Tetap'},
@@ -609,8 +609,8 @@ class _KledoDrawerState extends State<KledoDrawer> {
                             destination = KasBankPage();
                           }
 
-                          if (item['title'] == 'Laporan') {
-                            destination = LaporanPage();
+                          if (item['title'] == 'Customer') {
+                            destination = const Customerscreen();
                           }
 
                           if (item['title'] == 'Aset Tetap') {
