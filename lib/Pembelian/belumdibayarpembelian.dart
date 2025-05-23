@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:hayami_app/belumdibayar/detailbelumdibayar.dart';
+import 'package:hayami_app/Pembelian/detailbelumdibayarpembelian.dart';
+import 'package:hayami_app/Pembelian/tambahbelumdibayarpembelian.dart';
 import 'package:hayami_app/tagihan/tambahtagihan.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -29,43 +30,46 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
     fetchInvoices();
   }
 
-  Future<void> fetchInvoices() async {
-    try {
-      final response = await http
-          .get(Uri.parse('http://192.168.1.10/connect/JSON/index.php'));
+Future<void> fetchInvoices() async {
+  try {
+    final response = await http.get(
+      Uri.parse('http://192.168.1.8/nindo/stockin.php'), // Ganti sesuai endpoint kamu
+    );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> result = json.decode(response.body);
+      final List<dynamic> data = result['data'];
 
-        invoices = data
-            .where((item) => item["status"] == "Belum Dibayar")
-            .map<Map<String, dynamic>>((item) {
-          return {
-            "id": item["id"] ?? item["0"],
-            "name": item["name"] ?? item["1"],
-            "invoice": item["invoice"] ?? item["2"],
-            "date": item["date"] ?? item["3"],
-            "due": item["due"] ?? item["4"],
-            "alamat": item["alamat"] ?? item["6"],
-            "amount": item["amount"] ?? item["5"],
-            "status": item["status"] ?? item["7"],
-          };
-        }).toList();
+      invoices = data
+          .map<Map<String, dynamic>>((item) {
+            return {
+              "id": item["id_po1"],
+              "name": item["supplier"]["nama"], 
+              "alamat": item["supplier"]["alamat"],
+              "hp": item["supplier"]["hp"],
+              "invoice": item["id_po1"],
+              "date": item["tanggal"], // tgl_po dari backend
+              "amount": item["sisa_hutang"].toString(),
+              "status": "Belum Dibayar", 
+            };
+          })
+          .toList();
 
-        setState(() {
-          filteredInvoices = invoices;
-          isLoading = false;
-        });
-      } else {
-        throw Exception('Gagal mengambil data');
-      }
-    } catch (e) {
-      print("Error: $e");
       setState(() {
+        filteredInvoices = invoices;
         isLoading = false;
       });
+    } else {
+      throw Exception('Gagal mengambil data');
     }
+  } catch (e) {
+    print("Error: $e");
+    setState(() {
+      isLoading = false;
+    });
   }
+}
+
 
   void filterByMonthYear() {
     setState(() {
@@ -285,7 +289,7 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        Detailbelumdibayar(invoice: invoice),
+                                        DetailBelumDibayarPembelian(invoice: invoice),
                                   ),
                                 );
                                 if (result == true) {
@@ -327,7 +331,7 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const TambahInvoice()),
+              MaterialPageRoute(builder: (context) => const TambahTagihanPage()),
             );
           },
           child: const Icon(Icons.add),

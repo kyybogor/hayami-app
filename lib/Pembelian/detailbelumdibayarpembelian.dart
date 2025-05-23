@@ -3,29 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 
-class Detailbelumdibayar extends StatefulWidget {
+class DetailBelumDibayarPembelian extends StatefulWidget {
   final Map<String, dynamic> invoice;
 
-  const Detailbelumdibayar({super.key, required this.invoice});
+  const DetailBelumDibayarPembelian({super.key, required this.invoice});
 
   @override
-  State<Detailbelumdibayar> createState() => _DetailbelumdibayarState();
+  State<DetailBelumDibayarPembelian> createState() => _DetailBelumDibayarPembelianState();
 }
 
-class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
+class _DetailBelumDibayarPembelianState extends State<DetailBelumDibayarPembelian> {
   List<dynamic> barang = [];
   int totalInvoice = 0;
   int sisaTagihan = 0;
   bool isLoading = true;
 
-  // ✅ Tambahan variabel untuk telepon
-  String telepon = '-';
-
   @override
   void initState() {
     super.initState();
-    telepon =
-        widget.invoice['telepon'] ?? '-'; // ✅ Simpan telepon di variabel state
     fetchProduct();
   }
 
@@ -35,48 +30,36 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
     });
 
     final invoiceId = widget.invoice['id']?.toString().trim() ?? '';
-    print('InvoiceId: $invoiceId');
-
-    final url = Uri.parse("http://192.168.1.10/nindo/barang_keluar.php");
+    final url = Uri.parse("http://192.168.1.8/nindo/stockin.php");
 
     try {
       final response = await http.get(url);
-      print('Raw Response: ${response.body}');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> allData = data['data'];
 
-      dynamic data = json.decode(response.body);
-
-      // Jika data berupa String, decode ulang
-      if (data is String) {
-        data = json.decode(data);
-      }
-
-      print('Decoded data type: ${data.runtimeType}');
-
-      if (data is List) {
-        final matchedInvoice = data.firstWhere(
-          (item) => item['id_so1'].toString().trim() == invoiceId,
+        final matchedInvoice = allData.firstWhere(
+          (item) => item['id_po1'].toString().trim() == invoiceId,
           orElse: () => null,
         );
 
-        print('Matched Invoice: $matchedInvoice');
-
         if (matchedInvoice != null) {
-          final totalRaw = matchedInvoice['total'];
-          final hutangRaw = matchedInvoice['hutang'];
-
           setState(() {
-            totalInvoice = int.tryParse('$totalRaw') ?? 0;
-            sisaTagihan = int.tryParse('$hutangRaw') ?? 0;
-
+            totalInvoice = matchedInvoice['total'] ?? 0;
+            sisaTagihan = matchedInvoice['sisa_hutang'] ?? 0;
             barang = (matchedInvoice['produk'] as List<dynamic>).map((produk) {
+              final price = double.tryParse(produk['price'].toString()) ?? 0;
+              final totalHarga = double.tryParse(produk['total_harga'].toString()) ?? 0;
+              final qty = produk['qty'] ?? 0;
+
               return {
-                'nama_barang': produk['nm_product'] ?? 'Tidak Diketahui',
-                'harga': double.tryParse('${produk['price']}') ?? 0,
-                'qty': int.tryParse('${produk['qty']}') ?? 0,
-                'total': double.tryParse('${produk['total_harga']}') ?? 0,
+                'nama_barang': produk['nama_produk'] ?? 'Tidak Diketahui',
+                'jumlah': totalHarga.toString(),
+                'qty': qty,
+                'harga': price.toString(),
+                'total': totalHarga.toString(),
               };
             }).toList();
-
             isLoading = false;
           });
         } else {
@@ -88,13 +71,11 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
           });
         }
       } else {
-        print('Format JSON tidak dikenali');
         setState(() {
           isLoading = false;
         });
       }
     } catch (e) {
-      print('Error fetching product: $e');
       setState(() {
         isLoading = false;
       });
@@ -102,8 +83,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
   }
 
   String formatRupiah(double number) {
-    final formatter =
-        NumberFormat.currency(locale: "id_ID", symbol: "Rp ", decimalDigits: 0);
+    final formatter = NumberFormat.currency(locale: "id_ID", symbol: "Rp ", decimalDigits: 0);
     return formatter.format(number);
   }
 
@@ -131,15 +111,16 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
   @override
   Widget build(BuildContext context) {
     final invoice = widget.invoice;
-    final customer = invoice['customer'] ?? 'Tidak diketahui';
+    final contactName = invoice['name'] ?? 'Tidak diketahui';
     final alamat = invoice['alamat'] ?? 'Tidak diketahui';
+    final hp = invoice['hp'] ?? '-';
     final invoiceNumber = invoice['invoice'] ?? invoice['id'] ?? '-';
     final date = invoice['date'] ?? '-';
     final dueDate = invoice['due'] ?? '-';
     final status = invoice['status'] ?? 'belum dibayar';
     final statusColor = _getStatusColor(status);
 
-    return Scaffold(
+    return Scaffold(  
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: Container(
@@ -151,8 +132,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
             ),
           ),
           child: AppBar(
-            title: const Text('Tagihan',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            title: const Text('Tagihan', style: TextStyle(fontWeight: FontWeight.bold)),
             centerTitle: true,
             backgroundColor: Colors.transparent,
             foregroundColor: Colors.white,
@@ -162,15 +142,13 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
       ),
       body: Column(
         children: [
-          _buildHeader(invoiceNumber, customer, alamat, telepon, date, dueDate,
-              status, statusColor),
+          _buildHeader(invoiceNumber, contactName, alamat, hp, date, dueDate, status, statusColor),
           const SizedBox(height: 12),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text("Barang Dibeli",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              child: Text("Barang Dibeli", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
           ),
           Expanded(
@@ -186,41 +164,22 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
                     ),
                   )
                 : barang.isEmpty
-                    ? const Center(
-                        child: Text("Tidak ada barang untuk invoice ini."))
+                    ? const Center(child: Text("Tidak ada barang untuk invoice ini."))
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: barang.length,
                         itemBuilder: (context, index) {
                           final item = barang[index];
-
-                          final harga = (item['harga'] is String)
-                              ? double.tryParse(item['harga']) ?? 0
-                              : (item['harga'] is num)
-                                  ? item['harga'].toDouble()
-                                  : 0;
-
-                          final total = (item['total'] is String)
-                              ? double.tryParse(item['total']) ?? 0
-                              : (item['total'] is num)
-                                  ? item['total'].toDouble()
-                                  : 0;
-
-                          final qty = (item['qty'] is String)
-                              ? int.tryParse(item['qty']) ?? 0
-                              : (item['qty'] is int)
-                                  ? item['qty']
-                                  : 0;
+                          final harga = double.tryParse(item['harga'] ?? '0') ?? 0;
+                          final total = double.tryParse(item['total'] ?? '0') ?? 0;
+                          final qty = item['qty'] ?? 0;
 
                           return Card(
                             child: ListTile(
-                              title: Text(
-                                  item['nama_barang'] ?? 'Tidak Diketahui'),
-                              subtitle:
-                                  Text("$qty pcs x ${formatRupiah(harga)}"),
+                              title: Text(item['nama_barang'] ?? 'Tidak Diketahui'),
+                              subtitle: Text("$qty pcs x ${formatRupiah(harga)}"),
                               trailing: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 4, horizontal: 8),
+                                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                                 decoration: BoxDecoration(
                                   color: statusColor.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(8),
@@ -248,12 +207,8 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("Total Semua",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text(formatRupiah(totalInvoice.toDouble()),
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      const Text("Total Semua", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(formatRupiah(totalInvoice.toDouble()), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -264,14 +219,8 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("Sisa Tagihan",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text(formatRupiah(sisaTagihan.toDouble()),
-                          style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red)),
+                      const Text("Sisa Tagihan", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(formatRupiah(sisaTagihan.toDouble()), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red)),
                     ],
                   ),
                 ),
@@ -282,15 +231,8 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
     );
   }
 
-  Widget _buildHeader(
-      String invoiceNumber,
-      String customer,
-      String alamat,
-      String telepon,
-      String date,
-      String dueDate,
-      String status,
-      Color statusColor) {
+  Widget _buildHeader(String invoiceNumber, String contactName, String alamat, String hp,
+      String date, String dueDate, String status, Color statusColor) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -308,20 +250,13 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(invoiceNumber,
-              style: const TextStyle(fontSize: 16, color: Colors.white70)),
+          Text(invoiceNumber, style: const TextStyle(fontSize: 16, color: Colors.white70)),
           const SizedBox(height: 16),
-          Text(customer,
-              style: const TextStyle(
-                  fontSize: 18,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold)),
+          Text(contactName, style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),
-          Text(telepon,
-              style: const TextStyle(fontSize: 13, color: Colors.white)),
+          Text(hp, style: const TextStyle(fontSize: 13, color: Colors.white)),
           const SizedBox(height: 2),
-          Text(alamat,
-              style: const TextStyle(fontSize: 13, color: Colors.white)),
+          Text(alamat, style: const TextStyle(fontSize: 13, color: Colors.white)),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
@@ -341,9 +276,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(status,
-                    style: const TextStyle(
-                        color: Colors.black, fontWeight: FontWeight.w500)),
+                Text(status, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -353,8 +286,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.calendar_today,
-                      size: 16, color: Colors.white),
+                  const Icon(Icons.calendar_today, size: 16, color: Colors.white),
                   const SizedBox(width: 6),
                   Text(date, style: const TextStyle(color: Colors.white)),
                 ],
