@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:hayami_app/produk/produkdetail.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 
@@ -15,66 +14,87 @@ class Detailbelumdibayar extends StatefulWidget {
 
 class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
   List<dynamic> barang = [];
-  List<dynamic> allProduk = [];
+  int totalInvoice = 0;
+  int sisaTagihan = 0;
+  bool isLoading = true;
+
+  // ✅ Tambahan variabel untuk telepon
+  String telepon = '-';
 
   @override
   void initState() {
     super.initState();
+    telepon = widget.invoice['telepon'] ?? '-'; // ✅ Simpan telepon di variabel state
     fetchProduct();
   }
 
   Future<void> fetchProduct() async {
-    final invoiceId = widget.invoice['id']?.toString() ?? '';
-    final url = Uri.parse("http://192.168.1.8/hiyami/tessss.php");
+  setState(() {
+    isLoading = true;
+  });
 
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        allProduk = data['data'];
+  final invoiceId = widget.invoice['id']?.toString().trim() ?? '';
+  print('InvoiceId: $invoiceId');
+  final url = Uri.parse("http://192.168.1.10/nindo/barang_keluar.php");
 
-        final filtered = (data['data'] as List).expand((product) {
-          return (product['kontaks'] as List).where((kontak) {
-            return kontak['kontak_id'].toString() == invoiceId;
-          }).map((kontak) {
-            final barang = kontak['barang_kontak'] ?? {};
-            final jumlah = double.tryParse(barang['jumlah']?.toString() ?? '0') ?? 0;
-            final harga = double.tryParse(barang['harga']?.toString() ?? '0') ?? 0;
-            final total = jumlah * harga;
+  try {
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final List<dynamic> allData = data['data'];
+      print('All data length: ${allData.length}');
+
+      final matchedInvoice = allData.firstWhere(
+        (item) => item['id_so1'].toString().trim() == invoiceId,
+        orElse: () => null,
+      );
+      print('Matched Invoice: $matchedInvoice');
+
+      if (matchedInvoice != null) {
+        print('Produk: ${matchedInvoice['produk']}');
+        setState(() {
+          totalInvoice = int.tryParse(matchedInvoice['total'].toString()) ?? 0;
+          sisaTagihan = int.tryParse(matchedInvoice['hutang'].toString()) ?? 0;
+
+          barang = (matchedInvoice['produk'] as List<dynamic>).map((produk) {
+            final price = double.tryParse(produk['price'].toString()) ?? 0;
+            final totalHarga = double.tryParse(produk['total_harga'].toString()) ?? 0;
+            final qty = int.tryParse(produk['qty'].toString()) ?? 0;
 
             return {
-              'nama_barang': barang['nama_barang'] ?? 'Tidak Diketahui',
-              'size': barang['size'] ?? 'Tidak Diketahui',
-              'jumlah': jumlah.toString(),
-              'harga': harga.toString(),
-              'total': total.toString(),
-              'barang_id': barang['barang_id'],
+              'nama_barang': produk['nm_product'] ?? 'Tidak Diketahui',
+              'harga': price,
+              'qty': qty,
+              'total': totalHarga,
             };
           }).toList();
-        }).toList();
 
-        setState(() {
-          barang = filtered;
+          isLoading = false;
         });
       } else {
-        print('Gagal mengambil data barang. Status: ${response.statusCode}');
+        setState(() {
+          barang = [];
+          totalInvoice = 0;
+          sisaTagihan = 0;
+          isLoading = false;
+        });
       }
-    } catch (e) {
-      print("Error saat mengambil data barang: $e");
+    } else {
+      setState(() {
+        isLoading = false;
+      });
     }
+  } catch (e) {
+    print('Error fetching product: $e');
+    setState(() {
+      isLoading = false;
+    });
   }
+}
 
-  double getTotalSemuaBarang() {
-    double total = 0;
-    for (var item in barang) {
-      final harga = double.tryParse(item['total']?.toString() ?? '0') ?? 0;
-      total += harga;
-    }
-    return total;
-  }
 
   String formatRupiah(double number) {
-    final formatter = NumberFormat("#,###", "id_ID");
+    final formatter = NumberFormat.currency(locale: "id_ID", symbol: "Rp ", decimalDigits: 0);
     return formatter.format(number);
   }
 
@@ -102,13 +122,12 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
   @override
   Widget build(BuildContext context) {
     final invoice = widget.invoice;
-    final contactName = invoice['name'] ?? 'Tidak diketahui';
-    final instansi = invoice['instansi']?? '-';
-    final invoiceNumber = invoice['invoice'] ?? '-';
+    final customer = invoice['customer'] ?? 'Tidak diketahui';
+    final alamat = invoice['alamat'] ?? 'Tidak diketahui';
+    final invoiceNumber = invoice['invoice'] ?? invoice['id'] ?? '-';
     final date = invoice['date'] ?? '-';
     final dueDate = invoice['due'] ?? '-';
-    final address = invoice['alamat'] ?? '-';
-    final status = invoice['status'] ?? 'Belum Dibayar';
+    final status = invoice['status'] ?? 'belum dibayar';
     final statusColor = _getStatusColor(status);
 
     return Scaffold(
@@ -133,111 +152,96 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
       ),
       body: Column(
         children: [
-          _buildHeader(invoiceNumber, contactName, instansi, address, date, dueDate, status, statusColor),
+          _buildHeader(invoiceNumber, customer, alamat, telepon, date, dueDate, status, statusColor),
           const SizedBox(height: 12),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text("Barang Dibeli",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              child: Text("Barang Dibeli", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
           ),
           Expanded(
-            child: Column(
-              children: [
-                Expanded(
-                  child: barang.isEmpty
-                      ? const Center(child: Text("Tidak ada barang untuk invoice ini."))
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: barang.length,
-                          itemBuilder: (context, index) {
-                            final item = barang[index];
-                            return Card(
-                              child: ListTile(
-                                title: Text(item['nama_barang'] ?? 'Tidak Diketahui'),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (item['size'] != null && item['size'].isNotEmpty)
-                                      Text("Ukuran: ${item['size']}"),
-                                    Text(
-                                      "${item['jumlah']} x Rp ${formatRupiah(double.tryParse(item['harga']?.toString() ?? '0') ?? 0)}",
-                                    ),
-                                  ],
-                                ),
-                                trailing: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                  decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    "Rp ${formatRupiah(double.tryParse(item['total']?.toString() ?? '0') ?? 0)}",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: statusColor,
-                                    ),
-                                  ),
-                                ),
-                                onTap: () {
-                                  final barangId = item['barang_id']?.toString() ?? '';
-                                  Map<String, dynamic>? productDetail;
-
-                                  for (var produk in allProduk) {
-                                    final kontaks = produk['kontaks'] as List;
-                                    for (var kontak in kontaks) {
-                                      final barangKontak = kontak['barang_kontak'];
-                                      if (barangKontak != null &&
-                                          barangKontak['barang_id']?.toString() == barangId) {
-                                        productDetail = produk;
-                                        break;
-                                      }
-                                    }
-                                    if (productDetail != null) break;
-                                  }
-
-                                  if (productDetail != null) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ProductDetailPage(product: productDetail!),
-                                      ),
-                                    );
-                                  } else {
-                                    print("Produk detail tidak ditemukan");
-                                  }
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                ),
-                if (barang.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    width: double.infinity,
-                    color: Colors.grey.shade200,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: isLoading
+                ? const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text("Total Semua",
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text("Rp ${formatRupiah(getTotalSemuaBarang())}",
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        CircularProgressIndicator(),
+                        SizedBox(height: 12),
+                        Text("Mohon tunggu sebentar, sedang mencari produk"),
                       ],
                     ),
+                  )
+                : barang.isEmpty
+                    ? const Center(child: Text("Tidak ada barang untuk invoice ini."))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: barang.length,
+                        itemBuilder: (context, index) {
+                          final item = barang[index];
+                          final harga = double.tryParse(item['harga'] ?? '0') ?? 0;
+                          final total = double.tryParse(item['total'] ?? '0') ?? 0;
+                          final qty = item['qty'] ?? 0;
+
+                          return Card(
+                            child: ListTile(
+                              title: Text(item['nama_barang'] ?? 'Tidak Diketahui'),
+                              subtitle: Text("$qty pcs x ${formatRupiah(harga)}"),
+                              trailing: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  formatRupiah(total),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: statusColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+          if (!isLoading && barang.isNotEmpty)
+            Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  width: double.infinity,
+                  color: Colors.grey.shade200,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Total Semua", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(formatRupiah(totalInvoice.toDouble()), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ],
                   ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  width: double.infinity,
+                  color: Colors.grey.shade100,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Sisa Tagihan", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(formatRupiah(sisaTagihan.toDouble()), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red)),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(String invoiceNumber, String contactName, String instansi, String address,
+  Widget _buildHeader(String invoiceNumber, String customer, String alamat, String telepon,
       String date, String dueDate, String status, Color statusColor) {
     return Container(
       width: double.infinity,
@@ -258,12 +262,11 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
         children: [
           Text(invoiceNumber, style: const TextStyle(fontSize: 16, color: Colors.white70)),
           const SizedBox(height: 16),
-          Text(contactName,
-              style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+          Text(customer, style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),
-          Text(instansi, style: const TextStyle(fontSize: 13, color: Colors.white)),
+          Text(telepon, style: const TextStyle(fontSize: 13, color: Colors.white)),
           const SizedBox(height: 2),
-          Text(address, style: const TextStyle(fontSize: 13, color: Colors.white)),
+          Text(alamat, style: const TextStyle(fontSize: 13, color: Colors.white)),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
@@ -287,7 +290,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 5),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
