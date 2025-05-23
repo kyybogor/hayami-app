@@ -35,13 +35,13 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
     });
 
     final invoiceId = widget.invoice['id']?.toString().trim() ?? '';
-    print('InvoiceId: $invoiceId');
+    //print('InvoiceId: $invoiceId');
 
     final url = Uri.parse("http://192.168.1.10/nindo/barang_keluar.php");
 
     try {
       final response = await http.get(url);
-      print('Raw Response: ${response.body}');
+      //print('Raw Response: ${response.body}');
 
       dynamic data = json.decode(response.body);
 
@@ -50,7 +50,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
         data = json.decode(data);
       }
 
-      print('Decoded data type: ${data.runtimeType}');
+      //print('Decoded data type: ${data.runtimeType}');
 
       if (data is List) {
         final matchedInvoice = data.firstWhere(
@@ -58,7 +58,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
           orElse: () => null,
         );
 
-        print('Matched Invoice: $matchedInvoice');
+        //print('Matched Invoice: $matchedInvoice');
 
         if (matchedInvoice != null) {
           final totalRaw = matchedInvoice['total'];
@@ -88,13 +88,13 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
           });
         }
       } else {
-        print('Format JSON tidak dikenali');
+        //print('Format JSON tidak dikenali');
         setState(() {
           isLoading = false;
         });
       }
     } catch (e) {
-      print('Error fetching product: $e');
+      //print('Error fetching product: $e');
       setState(() {
         isLoading = false;
       });

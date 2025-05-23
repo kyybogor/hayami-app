@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hayami_app/Login/loginScreen.dart';
+import 'package:hayami_app/Pembelian/belumdibayarpembelian.dart';
 import 'package:hayami_app/Pembelian/pembelianscreen.dart';
 import 'package:hayami_app/Pembelian/pemesananpembelian.dart';
 import 'package:hayami_app/Pembelian/penawaran_pembelian/penawaranpembelian.dart';
@@ -8,6 +9,7 @@ import 'package:hayami_app/Pembelian/tagihanpembelian.dart';
 import 'package:hayami_app/Penjualan/penjualanscreen.dart';
 import 'package:hayami_app/akun/akunscreen.dart';
 import 'package:hayami_app/assetetap/assetetap.dart';
+import 'package:hayami_app/belumdibayar/belumdibayarscreen.dart';
 import 'package:hayami_app/biaya/biayascreen.dart';
 import 'package:hayami_app/customer/customer.dart';
 import 'package:hayami_app/kas%20&%20bank/kasdanbank.dart';
@@ -145,13 +147,13 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                           Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const Penjualanscreen()));
+                                  builder: (_) => const BelumDibayar()));
                           break;
                         case 'Pembelian':
                           Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const Pembelianscreen()));
+                                  builder: (_) => const BelumDibayarPembelian()));
                           break;
                         case 'Biaya':
                           Navigator.push(
@@ -520,7 +522,7 @@ class _KledoDrawerState extends State<KledoDrawer> {
                               switch (subItem) {
                                 case 'Overview Penjualan':
                                   destination =
-                                      const Penjualanscreen(); // ganti sesuai nama halamanmu
+                                      const BelumDibayar(); // ganti sesuai nama halamanmu
                                   break;
                                 case 'Tagihan':
                                   destination = const TagihanPage();
