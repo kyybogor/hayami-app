@@ -29,44 +29,49 @@ class _BelumDibayarState extends State<BelumDibayar> {
     fetchInvoices();
   }
 
-  Future<void> fetchInvoices() async {
-    try {
-      final response = await http
-          .get(Uri.parse('http://192.168.1.10/connect/JSON/kontak.php'));
+Future<void> fetchInvoices() async {
+  try {
+    final response = await http.get(
+      Uri.parse('http://192.168.1.10/nindo/barang_keluar.php'),
+    );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
 
-        invoices = data
-            .where((item) => item["status_transaksi"] == "Belum Dibayar")
-            .map<Map<String, dynamic>>((item) {
-          return {
-            "id": item["id"],
-            "name": item["nama"],
-            'instansi': item['instansi'],
-            "invoice": item["invoice"],
-            "date": item["date"],
-            "due": item["due"],
-            "alamat": item["alamat"],
-            "amount": item["amount"],
-            "status": item["status_transaksi"],
-          };
-        }).toList();
+      invoices = data.map<Map<String, dynamic>>((item) {
+        return {
+          "id": item["id_so1"],
+          "customer": item["customer"],
+          "alamat": item["alamat"],
+          "telepon": item["telepon"],
+          "invoice": item["id_so1"],
+          "date": item["tanggal"],
+          "due": item["jatuh_tempo"],
+          "amount": item["hutang"].toString(),
+          "status": "Belum Dibayar",
+          // kamu bisa juga tambahkan properti lain sesuai kebutuhan
+        };
+      }).toList();
 
+      if (mounted) {
         setState(() {
           filteredInvoices = invoices;
           isLoading = false;
         });
-      } else {
-        throw Exception('Gagal mengambil data');
       }
-    } catch (e) {
-      print("Error: $e");
+    } else {
+      throw Exception('Gagal mengambil data');
+    }
+  } catch (e) {
+    print("Error: $e");
+    if (mounted) {
       setState(() {
         isLoading = false;
       });
     }
   }
+}
+
 
   void filterByMonthYear() {
     setState(() {
@@ -94,7 +99,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
             invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
         final matchYear = selectedYear == 'Semua' ||
             invoiceDate.year.toString() == selectedYear;
-        return invoice["name"].toString().toLowerCase().contains(keyword) &&
+        return invoice["customer"].toString().toLowerCase().contains(keyword) &&
             matchMonth &&
             matchYear;
       }).toList();
@@ -250,7 +255,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
                           itemBuilder: (context, index) {
                             final invoice = filteredInvoices[index];
                             return ListTile(
-                              title: Text(invoice["name"]),
+                              title: Text(invoice["customer"]),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
