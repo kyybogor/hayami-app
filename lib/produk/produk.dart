@@ -16,6 +16,7 @@ class ProdukPage extends StatefulWidget {
 
 class _ProdukPageState extends State<ProdukPage> {
   bool _showChart = true;
+  bool _isLoading = true;  // <-- tambah variabel loading
   List<Map<String, dynamic>> _produkList = [];
   List<Map<String, dynamic>> _filteredProdukList = [];
   int totalProduk = 0;
@@ -43,6 +44,10 @@ class _ProdukPageState extends State<ProdukPage> {
   }
 
   Future<void> _fetchProduk() async {
+    setState(() {
+      _isLoading = true; // mulai loading saat fetch
+    });
+
     final url = Uri.parse('http://192.168.1.8/nindo/produk.php');
 
     try {
@@ -53,12 +58,19 @@ class _ProdukPageState extends State<ProdukPage> {
           _produkList = data.map((e) => Map<String, dynamic>.from(e)).toList();
           _filteredProdukList = _produkList;
           _calculateProduk();
+          _isLoading = false; // selesai loading
         });
       } else {
         print('Failed to load produk');
+        setState(() {
+          _isLoading = false;
+        });
       }
     } catch (e) {
       print('Error: $e');
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -134,7 +146,7 @@ class _ProdukPageState extends State<ProdukPage> {
         child: const Icon(Icons.add),
       ),
       body: ListView(
-        padding: EdgeInsets.zero, // Full width list
+        padding: EdgeInsets.zero,
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
@@ -157,10 +169,12 @@ class _ProdukPageState extends State<ProdukPage> {
               physics: const BouncingScrollPhysics(),
               child: Row(
                 children: [
-                  _buildStatusCard('Produk Tersedia',
-                      (totalProduk - produkHampirHabis - produkHabis).toString(), Colors.green),
-                  _buildStatusCard('Produk Hampir Habis',
-                      produkHampirHabis.toString(), Colors.orange),
+                  _buildStatusCard(
+                      'Produk Tersedia',
+                      (totalProduk - produkHampirHabis - produkHabis).toString(),
+                      Colors.green),
+                  _buildStatusCard(
+                      'Produk Hampir Habis', produkHampirHabis.toString(), Colors.orange),
                   _buildStatusCard('Produk Habis', produkHabis.toString(), Colors.red),
                   _buildStatusCard('Total Produk', totalProduk.toString(), Colors.blue),
                 ],
@@ -203,8 +217,17 @@ class _ProdukPageState extends State<ProdukPage> {
             ),
           const SizedBox(height: 16),
 
-          // List produk (tanpa padding)
-          ..._filteredProdukList.map((produk) => _buildProductItem(produk)).toList(),
+          // Loading indikator di bagian list produk saja
+          _isLoading
+              ? const Center(
+                  heightFactor: 5,
+                  child: CircularProgressIndicator(),
+                )
+              : Column(
+                  children: _filteredProdukList
+                      .map((produk) => _buildProductItem(produk))
+                      .toList(),
+                ),
         ],
       ),
     );

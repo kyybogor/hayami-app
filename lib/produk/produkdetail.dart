@@ -102,8 +102,8 @@ class ProductDetailPage extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildInfoCard('Kuantitas',
-                      displayValue(product['qty']), Colors.pink),
+                  _buildInfoCard('Stok Tersedia',
+                      displayValue(product['stok']), Colors.pink),
                   _buildInfoCard('Minimal Stok',
                       displayValue(product['minim']), Colors.orange),
                   _buildInfoCard(
