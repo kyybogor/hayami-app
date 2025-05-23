@@ -40,7 +40,7 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
         "jenis": selectedJenis,
         "hp": _phoneController.text,
         "alamat": _addressController.text,
-        "email": widget.customer['email'] ?? "", // Tambahkan jika ada
+        "email": widget.customer['email'] ?? "",
       },
     );
 
@@ -55,10 +55,10 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
           );
           Navigator.pop(context, {
             'id': widget.customer['id'],
-            'nm_supp': _nameController.text,
+            'name': _nameController.text,         // key disesuaikan!
             'jenis': selectedJenis,
-            'hp': _phoneController.text,
-            'alamat': _addressController.text,
+            'phone': _phoneController.text,       // key disesuaikan!
+            'address': _addressController.text,   // key disesuaikan!
           });
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -176,7 +176,7 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 32), // Space at the bottom
+              const SizedBox(height: 32),
             ],
           ),
         ),

@@ -52,7 +52,7 @@ class ProductDetailPage extends StatelessWidget {
           children: [
             Text(displayValue(product['nm_product']),
                 style: const TextStyle(fontSize: 20)),
-            Text(displayValue(product['produk_code']),
+            Text(displayValue(product['id_product']),
                 style: const TextStyle(fontSize: 12)),
           ],
         ),
