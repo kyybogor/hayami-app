@@ -1,5 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-
+import 'package:http/http.dart' as http;
 // Model Item untuk data produk yang ditambahkan
 class Item {
   final String product;
@@ -38,9 +39,9 @@ class _TambahTagihanPageState extends State<TambahTagihanPage> {
   final TextEditingController diskonRpController = TextEditingController(text: '0');
   final TextEditingController diskonPersenController = TextEditingController(text: '0');
 
-  double get subtotalItems {
-    return items.fold(0, (sum, item) => sum + item.subtotal);
-  }
+double get subtotalItems {
+  return items.fold(0, (sum, item) => sum + item.total);
+}
 
   double get totalDiskonTagihan {
     final diskonRp = double.tryParse(diskonRpController.text) ?? 0;
@@ -510,46 +511,257 @@ class _TambahItemPageState extends State<TambahItemPage> {
   }
 }
 
-class PilihSupplierPage extends StatelessWidget {
+
+class PilihSupplierPage extends StatefulWidget {
   const PilihSupplierPage({super.key});
 
   @override
+  State<PilihSupplierPage> createState() => _PilihSupplierPageState();
+}
+
+class _PilihSupplierPageState extends State<PilihSupplierPage> {
+  List<String> suppliers = [];
+  List<String> filteredSuppliers = [];
+  bool isLoading = true;
+  String? error;
+  TextEditingController searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchSuppliers();
+
+    searchController.addListener(() {
+      filterSuppliers();
+    });
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> fetchSuppliers() async {
+    const url = 'http://192.168.1.8/nindo/tambahstock.php?action=suppliers_products';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        List suppliersData = data["suppliers"];
+
+        setState(() {
+          suppliers = suppliersData
+              .map<String>((item) => item["nm_supp"].toString())
+              .toList();
+          filteredSuppliers = suppliers;
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          error = 'Failed to load suppliers. Status code: ${response.statusCode}';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        error = 'Error: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  void filterSuppliers() {
+    final query = searchController.text.toLowerCase();
+
+    setState(() {
+      if (query.isEmpty) {
+        filteredSuppliers = suppliers;
+      } else {
+        filteredSuppliers = suppliers
+            .where((supplier) => supplier.toLowerCase().contains(query))
+            .toList();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final suppliers = ['Supplier A', 'Supplier B', 'Supplier C'];
+    if (isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Pilih Supplier')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (error != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Pilih Supplier')),
+        body: Center(child: Text(error!)),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Pilih Supplier'), centerTitle: true,),
-      body: ListView.builder(
-        itemCount: suppliers.length,
-        itemBuilder: (context, index) {
-          final supplier = suppliers[index];
-          return ListTile(
-            title: Text(supplier),
-            onTap: () => Navigator.pop(context, supplier),
-          );
-        },
+      appBar: AppBar(title: const Text('Pilih Supplier'), centerTitle: true),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                labelText: 'Cari Supplier',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: filteredSuppliers.isNotEmpty
+                ? ListView.builder(
+                    itemCount: filteredSuppliers.length,
+                    itemBuilder: (context, index) {
+                      final supplier = filteredSuppliers[index];
+                      return ListTile(
+                        title: Text(supplier),
+                        onTap: () => Navigator.pop(context, supplier),
+                      );
+                    },
+                  )
+                : const Center(child: Text('Supplier tidak ditemukan')),
+          ),
+        ],
       ),
     );
   }
 }
-
-// Contoh halaman PilihProdukPage
-class PilihProdukPage extends StatelessWidget {
+class PilihProdukPage extends StatefulWidget {
   const PilihProdukPage({super.key});
 
   @override
+  State<PilihProdukPage> createState() => _PilihProdukPageState();
+}
+
+class _PilihProdukPageState extends State<PilihProdukPage> {
+  List<String> products = [];
+  List<String> filteredProducts = [];
+  bool isLoading = true;
+  String? error;
+  final TextEditingController searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchProducts();
+
+    searchController.addListener(() {
+      filterProducts();
+    });
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> fetchProducts() async {
+    const url = 'http://192.168.1.8/nindo/tambahstock.php?action=suppliers_products';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        List productsData = data["products"];
+
+        setState(() {
+          products = productsData
+              .map<String>((item) => item["nm_product"].toString())
+              .toList();
+          filteredProducts = products;
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          error = 'Failed to load products. Status code: ${response.statusCode}';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        error = 'Error: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  void filterProducts() {
+    final query = searchController.text.toLowerCase();
+
+    setState(() {
+      if (query.isEmpty) {
+        filteredProducts = products;
+      } else {
+        filteredProducts = products
+            .where((product) => product.toLowerCase().contains(query))
+            .toList();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final products = ['Produk 1', 'Produk 2', 'Produk 3'];
+    if (isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Pilih Produk')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (error != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Pilih Produk')),
+        body: Center(child: Text(error!)),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Pilih Produk'), centerTitle: true,),
-      body: ListView.builder(
-        itemCount: products.length,
-        itemBuilder: (context, index) {
-          final product = products[index];
-          return ListTile(
-            title: Text(product),
-            onTap: () => Navigator.pop(context, product),
-          );
-        },
+      appBar: AppBar(title: const Text('Pilih Produk'), centerTitle: true),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                labelText: 'Cari Produk',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: filteredProducts.isNotEmpty
+                ? ListView.builder(
+                    itemCount: filteredProducts.length,
+                    itemBuilder: (context, index) {
+                      final product = filteredProducts[index];
+                      return ListTile(
+                        title: Text(product),
+                        onTap: () => Navigator.pop(context, product),
+                      );
+                    },
+                  )
+                : const Center(child: Text('Produk tidak ditemukan')),
+          ),
+        ],
       ),
     );
   }
