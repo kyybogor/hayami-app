@@ -333,7 +333,7 @@ Future<void> fetchInvoices() async {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) =>  InputSOPage()),
+              MaterialPageRoute(builder: (context) =>  SalesOrderPage()),
             );
           },
           child: const Icon(Icons.add),
