@@ -56,7 +56,7 @@ class _EditProductPageState extends State<EditProductPage> {
   }
 
   Future<void> _fetchKategori() async {
-    final url = Uri.parse('http://192.168.1.8/nindo2/kategori.php');
+    final url = Uri.parse('http://192.168.1.9/nindo2/kategori.php');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -106,7 +106,7 @@ Future<void> _pickImage(ImageSource source) async {
         return;
       }
 
-      final url = Uri.parse('http://192.168.1.8/nindo/edit_produk.php');
+      final url = Uri.parse('http://192.168.1.10/nindo/edit_produk.php');
       try {
         final response = await http.post(
           url,
@@ -234,7 +234,7 @@ Future<void> _pickImage(ImageSource source) async {
               else if (widget.product['gambar'] != null &&
                   widget.product['gambar'].toString().isNotEmpty)
                 Image.network(
-                    'http://192.168.1.8/nindo/' + widget.product['gambar'],
+                    'http://192.168.1.10/nindo/' + widget.product['gambar'],
                     height: 150),
               const SizedBox(height: 8),
 ElevatedButton.icon(

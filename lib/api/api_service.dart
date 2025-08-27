@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String _baseUrl = 'http://192.168.1.10/nindo/login_mobile.php';
+  static const String _baseUrl = 'http://192.168.1.11/nindo//login_mobile.php';
 
   static Future<Map<String, dynamic>> loginUser(String username, String password) async {
     try {

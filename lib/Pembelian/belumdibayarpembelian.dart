@@ -33,27 +33,29 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
 Future<void> fetchInvoices() async {
   try {
     final response = await http.get(
-      Uri.parse('http://192.168.1.8/nindo/stockin.php'), // Ganti sesuai endpoint kamu
+      Uri.parse('http://192.168.1.10/nindo/stockin%20-%20Copy.php?action=po'),
     );
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> result = json.decode(response.body);
       final List<dynamic> data = result['data'];
 
-      invoices = data
-          .map<Map<String, dynamic>>((item) {
-            return {
-              "id": item["id_po1"],
-              "name": item["supplier"]["nama"], 
-              "alamat": item["supplier"]["alamat"],
-              "hp": item["supplier"]["hp"],
-              "invoice": item["id_po1"],
-              "date": item["tanggal"], // tgl_po dari backend
-              "amount": item["sisa_hutang"].toString(),
-              "status": "Belum Dibayar", 
-            };
-          })
-          .toList();
+      invoices = data.map<Map<String, dynamic>>((item) {
+        return {
+          "id": item["id_po1"],
+          "name": item["supplier"]["nama"],
+          "alamat": item["supplier"]["alamat"],
+          "hp": item["supplier"]["hp"],
+          "invoice": item["id_po1"],
+          "date": item["tanggal"],
+          "due": item["tanggal"], // ganti jika punya field due_date
+          "amount": item["total"].toString(),
+          "status": "Belum Dibayar",
+          "total": item["total"],
+          // Jika detail ingin dipanggil nanti, bisa simpan ID di sini
+          "id_po1": item["id_po1"]
+        };
+      }).toList();
 
       setState(() {
         filteredInvoices = invoices;
@@ -69,7 +71,6 @@ Future<void> fetchInvoices() async {
     });
   }
 }
-
 
   void filterByMonthYear() {
     setState(() {
@@ -108,8 +109,10 @@ Future<void> fetchInvoices() async {
     try {
       final double value = double.parse(amount);
       return NumberFormat.currency(
-              locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
-          .format(value);
+        locale: 'id_ID',
+        symbol: 'Rp ',
+        decimalDigits: 0,
+      ).format(value);
     } catch (e) {
       return amount;
     }
@@ -289,36 +292,14 @@ Future<void> fetchInvoices() async {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        DetailBelumDibayarPembelian(invoice: invoice),
+                                        DetailBelumDibayarPembelian(
+                                            invoice: invoice),
                                   ),
                                 );
                                 if (result == true) {
                                   fetchInvoices();
                                   dataChanged = true;
                                 }
-                              },
-                              onLongPress: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text("Hapus Data"),
-                                    content: const Text(
-                                        "Yakin ingin menghapus data ini?"),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text("Batal"),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                          // Tambahkan logika hapus di sini jika diperlukan
-                                        },
-                                        child: const Text("Hapus"),
-                                      ),
-                                    ],
-                                  ),
-                                );
                               },
                             );
                           },
@@ -331,7 +312,8 @@ Future<void> fetchInvoices() async {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const TambahTagihanPage()),
+              MaterialPageRoute(
+                  builder: (context) => const TambahTagihanPage()),
             );
           },
           child: const Icon(Icons.add),

@@ -48,7 +48,7 @@ class _ProdukPageState extends State<ProdukPage> {
       _isLoading = true; // mulai loading saat fetch
     });
 
-    final url = Uri.parse('http://192.168.1.8/nindo/produk.php');
+    final url = Uri.parse('http://192.168.1.10/nindo/produk.php');
 
     try {
       final response = await http.get(url);
