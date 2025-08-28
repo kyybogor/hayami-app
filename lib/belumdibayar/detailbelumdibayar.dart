@@ -18,6 +18,10 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
   int sisaTagihan = 0;
   bool isLoading = true;
 
+  double discPersen = 0;
+  double discNominal = 0; // ✅ Tambahan
+  double ppnPersen = 0;
+
   // ✅ Tambahan variabel untuk telepon
   String telepon = '-';
 
@@ -37,7 +41,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
     final invoiceId = widget.invoice['id']?.toString().trim() ?? '';
     //print('InvoiceId: $invoiceId');
 
-    final url = Uri.parse("http://192.168.1.10/nindo/barang_keluar.php");
+    final url = Uri.parse("http://192.168.1.11/nindo/bank/barang_keluar.php");
 
     try {
       final response = await http.get(url);
@@ -68,12 +72,24 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
             totalInvoice = int.tryParse('$totalRaw') ?? 0;
             sisaTagihan = int.tryParse('$hutangRaw') ?? 0;
 
+            discPersen =
+                double.tryParse('${matchedInvoice['disc_persen']}') ?? 0;
+            discNominal =
+                double.tryParse('${matchedInvoice['disc_nominal']}') ??
+                    0; // ✅ dari so1
+            ppnPersen = double.tryParse('${matchedInvoice['ppn']}') ?? 0;
+
+            // ✅ Mapping produk + hitung total diskon nominal
             barang = (matchedInvoice['produk'] as List<dynamic>).map((produk) {
               return {
                 'nama_barang': produk['nm_product'] ?? 'Tidak Diketahui',
                 'harga': double.tryParse('${produk['price']}') ?? 0,
                 'qty': int.tryParse('${produk['qty']}') ?? 0,
                 'total': double.tryParse('${produk['total_harga']}') ?? 0,
+                'disc_nominal':
+                    double.tryParse('${produk['disc_nominal']}') ?? 0,
+                'disc_persen': double.tryParse('${produk['disc_persen']}') ??
+                    0, // ✅ ambil disc_persen
               };
             }).toList();
 
@@ -216,8 +232,22 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
                             child: ListTile(
                               title: Text(
                                   item['nama_barang'] ?? 'Tidak Diketahui'),
-                              subtitle:
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   Text("$qty pcs x ${formatRupiah(harga)}"),
+                                  if ((item['disc_persen'] ?? 0) > 0 ||
+                                      (item['disc_nominal'] ?? 0) > 0)
+                                    Text(
+                                      "Diskon: ${(item['disc_persen'] ?? 0).toStringAsFixed(0)}% - ${formatRupiah(item['disc_nominal'] ?? 0)}",
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                ],
+                              ),
                               trailing: Container(
                                 padding: const EdgeInsets.symmetric(
                                     vertical: 4, horizontal: 8),
@@ -244,6 +274,36 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   width: double.infinity,
+                  color: Colors.grey.shade100,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (discPersen > 0 || discNominal > 0)
+                        Text(
+                          "Diskon: ${discPersen.toStringAsFixed(0)}% - ${formatRupiah(discNominal)}",
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.red,
+                          ),
+                        ),
+                      if (ppnPersen > 0)
+                        Text(
+                          "PPN: ${ppnPersen.toStringAsFixed(0)}%",
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.blue,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+
+                // Total Semua
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  width: double.infinity,
                   color: Colors.grey.shade200,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -251,12 +311,16 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
                       const Text("Total Semua",
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text(formatRupiah(totalInvoice.toDouble()),
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(
+                        formatRupiah(totalInvoice.toDouble()),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ),
+
+                // Sisa Tagihan
                 Container(
                   padding: const EdgeInsets.all(16),
                   width: double.infinity,
@@ -267,11 +331,14 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
                       const Text("Sisa Tagihan",
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text(formatRupiah(sisaTagihan.toDouble()),
-                          style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red)),
+                      Text(
+                        formatRupiah(sisaTagihan.toDouble()),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
                     ],
                   ),
                 ),

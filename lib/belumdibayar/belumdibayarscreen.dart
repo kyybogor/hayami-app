@@ -19,8 +19,8 @@ class _BelumDibayarState extends State<BelumDibayar> {
   bool isLoading = true;
   bool dataChanged = false;
 
-  String selectedMonth = DateFormat('MM').format(DateTime.now());
-  String selectedYear = DateFormat('yyyy').format(DateTime.now());
+  DateTime? startDate;
+  DateTime? endDate;
 
   @override
   void initState() {
@@ -29,60 +29,64 @@ class _BelumDibayarState extends State<BelumDibayar> {
     fetchInvoices();
   }
 
-Future<void> fetchInvoices() async {
-  try {
-    final response = await http.get(
-      Uri.parse('http://192.168.1.10/nindo/barang_keluar.php'),
-    );
+  Future<void> fetchInvoices() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://192.168.1.11/nindo/bank/barang_keluar.php'),
+      );
 
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
 
-      invoices = data.map<Map<String, dynamic>>((item) {
-        return {
-          "id": item["id_so1"],
-          "customer": item["customer"],
-          "alamat": item["alamat"],
-          "telepon": item["telepon"],
-          "invoice": item["id_so1"],
-          "date": item["tanggal"],
-          "due": item["jatuh_tempo"],
-          "amount": item["hutang"].toString(),
-          "status": "Belum Dibayar",
-          // kamu bisa juga tambahkan properti lain sesuai kebutuhan
-        };
-      }).toList();
+        invoices = data.map<Map<String, dynamic>>((item) {
+          return {
+            "id": item["id_so1"],
+            "customer": item["customer"],
+            "alamat": item["alamat"],
+            "telepon": item["telepon"],
+            "invoice": item["id_so1"],
+            "date": item["tanggal"], // pastikan format "yyyy-MM-dd"
+            "due": item["jatuh_tempo"],
+            "amount": item["hutang"].toString(),
+            "status": "Belum Dibayar",
+          };
+        }).toList();
 
+        if (mounted) {
+          setState(() {
+            filteredInvoices = invoices;
+            isLoading = false;
+          });
+        }
+      } else {
+        throw Exception('Gagal mengambil data');
+      }
+    } catch (e) {
+      print("Error: $e");
       if (mounted) {
         setState(() {
-          filteredInvoices = invoices;
           isLoading = false;
         });
       }
-    } else {
-      throw Exception('Gagal mengambil data');
-    }
-  } catch (e) {
-    print("Error: $e");
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-      });
     }
   }
-}
 
-
-  void filterByMonthYear() {
+  void filterByDateRange() {
     setState(() {
       filteredInvoices = invoices.where((invoice) {
         try {
           final invoiceDate = DateFormat('yyyy-MM-dd').parse(invoice["date"]);
-          final matchMonth = selectedMonth == 'Semua' ||
-              invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
-          final matchYear = selectedYear == 'Semua' ||
-              invoiceDate.year.toString() == selectedYear;
-          return matchMonth && matchYear;
+          bool inRange = true;
+
+          if (startDate != null) {
+            inRange = invoiceDate
+                .isAfter(startDate!.subtract(const Duration(days: 1)));
+          }
+          if (endDate != null) {
+            inRange = inRange &&
+                invoiceDate.isBefore(endDate!.add(const Duration(days: 1)));
+          }
+          return inRange;
         } catch (e) {
           return false;
         }
@@ -95,13 +99,19 @@ Future<void> fetchInvoices() async {
     setState(() {
       filteredInvoices = invoices.where((invoice) {
         final invoiceDate = DateFormat('yyyy-MM-dd').parse(invoice["date"]);
-        final matchMonth = selectedMonth == 'Semua' ||
-            invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
-        final matchYear = selectedYear == 'Semua' ||
-            invoiceDate.year.toString() == selectedYear;
+
+        bool inRange = true;
+        if (startDate != null) {
+          inRange =
+              invoiceDate.isAfter(startDate!.subtract(const Duration(days: 1)));
+        }
+        if (endDate != null) {
+          inRange = inRange &&
+              invoiceDate.isBefore(endDate!.add(const Duration(days: 1)));
+        }
+
         return invoice["customer"].toString().toLowerCase().contains(keyword) &&
-            matchMonth &&
-            matchYear;
+            inRange;
       }).toList();
     });
   }
@@ -121,6 +131,26 @@ Future<void> fetchInvoices() async {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectDate(BuildContext context, bool isStart) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate:
+          isStart ? (startDate ?? DateTime.now()) : (endDate ?? DateTime.now()),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          startDate = picked;
+        } else {
+          endDate = picked;
+        }
+      });
+      filterByDateRange();
+    }
   }
 
   @override
@@ -146,12 +176,13 @@ Future<void> fetchInvoices() async {
         ),
         body: Column(
           children: [
+            // Search
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: "Cari",
+                  hintText: "Cari Customer",
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
                   fillColor: Colors.grey[100],
@@ -162,89 +193,105 @@ Future<void> fetchInvoices() async {
                 ),
               ),
             ),
+
+            // Filter tanggal
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
               child: Row(
                 children: [
-                  Flexible(
-                    flex: 1,
-                    child: DropdownButtonFormField<String>(
-                      value: selectedMonth,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.calendar_today),
-                        labelText: "Bulan",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => _selectDate(context, true),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 14, horizontal: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.blue.shade200),
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        filled: true,
-                        fillColor: Colors.blue.shade50,
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today,
+                                color: Colors.blue, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                startDate == null
+                                    ? "Pilih Tanggal Awal"
+                                    : DateFormat('dd-MM-yyyy')
+                                        .format(startDate!),
+                                style: TextStyle(
+                                  color: startDate == null
+                                      ? Colors.grey
+                                      : Colors.blue.shade800,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      items: [
-                        'Semua',
-                        ...List.generate(12, (index) {
-                          final month = (index + 1).toString().padLeft(2, '0');
-                          return month;
-                        })
-                      ].map((month) {
-                        return DropdownMenuItem(
-                          value: month,
-                          child: Text(
-                            month == 'Semua'
-                                ? 'Semua Bulan'
-                                : DateFormat('MMMM')
-                                    .format(DateTime(0, int.parse(month))),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            selectedMonth = value;
-                          });
-                          filterByMonthYear();
-                        }
-                      },
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Flexible(
-                    flex: 1,
-                    child: DropdownButtonFormField<String>(
-                      value: selectedYear,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.date_range),
-                        labelText: "Tahun",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => _selectDate(context, false),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 14, horizontal: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.blue.shade200),
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        filled: true,
-                        fillColor: Colors.blue.shade50,
+                        child: Row(
+                          children: [
+                            const Icon(Icons.event,
+                                color: Colors.blue, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                endDate == null
+                                    ? "Pilih Tanggal Akhir"
+                                    : DateFormat('dd-MM-yyyy').format(endDate!),
+                                style: TextStyle(
+                                  color: endDate == null
+                                      ? Colors.grey
+                                      : Colors.blue.shade800,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      items: ['Semua', '2023', '2024', '2025'].map((year) {
-                        return DropdownMenuItem(
-                          value: year,
-                          child: Text(year == 'Semua' ? 'Semua Tahun' : year),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            selectedYear = value;
-                          });
-                          filterByMonthYear();
-                        }
-                      },
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+
+            const SizedBox(height: 12),
+
+            // List Data
             Expanded(
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -259,8 +306,8 @@ Future<void> fetchInvoices() async {
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(invoice["invoice"]),
-                                  Text(invoice["date"]),
+                                  Text("Invoice: ${invoice["invoice"]}"),
+                                  Text("Tanggal: ${invoice["date"]}"),
                                 ],
                               ),
                               trailing: Row(
@@ -299,29 +346,6 @@ Future<void> fetchInvoices() async {
                                   dataChanged = true;
                                 }
                               },
-                              onLongPress: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text("Hapus Data"),
-                                    content: const Text(
-                                        "Yakin ingin menghapus data ini?"),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text("Batal"),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                          // Tambahkan logika hapus di sini jika diperlukan
-                                        },
-                                        child: const Text("Hapus"),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
                             );
                           },
                         ),
@@ -333,7 +357,7 @@ Future<void> fetchInvoices() async {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) =>  SalesOrderPage()),
+              MaterialPageRoute(builder: (context) => SalesOrderPage()),
             );
           },
           child: const Icon(Icons.add),
