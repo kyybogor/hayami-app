@@ -30,7 +30,7 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
   }
 
   Future<void> _updateCustomer() async {
-    final url = Uri.parse("http://192.168.1.10/nindo/get_supplier.php");
+    final url = Uri.parse("http://192.168.1.3/nindo/get_supplier.php");
 
     final response = await http.post(
       url,

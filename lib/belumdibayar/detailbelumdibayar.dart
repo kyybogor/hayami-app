@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Detailbelumdibayar extends StatefulWidget {
   final Map<String, dynamic> invoice;
@@ -24,14 +25,187 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
 
   // ✅ Tambahan variabel untuk telepon
   String telepon = '-';
+  String? idUser;
 
   @override
   void initState() {
     super.initState();
     telepon =
         widget.invoice['telepon'] ?? '-'; // ✅ Simpan telepon di variabel state
+        _loadUser();
     fetchProduct();
   }
+
+void showPembayaranDialog(BuildContext context, int sisaTagihan) {
+  final TextEditingController nominalController = TextEditingController();
+  final TextEditingController keteranganController = TextEditingController();
+
+  final formatter = NumberFormat("#,###", "id_ID");
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          "Pembayaran",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: Colors.indigo,
+          ),
+        ),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ✅ Info sisa tagihan
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    "Sisa Tagihan: Rp ${formatter.format(sisaTagihan)}",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ✅ Input nominal dengan format rupiah
+                TextField(
+                  controller: nominalController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: "Nominal Dibayar",
+                    prefixText: "Rp ",
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (value) {
+                    String newValue = value.replaceAll(".", "").replaceAll(",", "");
+                    if (newValue.isEmpty) {
+                      setState(() {
+                        nominalController.text = "";
+                      });
+                      return;
+                    }
+                    final number = int.parse(newValue);
+                    final formatted = formatter.format(number);
+
+                    // Update text dengan posisi cursor tetap di akhir
+                    setState(() {
+                      nominalController.text = formatted;
+                      nominalController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: formatted.length),
+                      );
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // ✅ Input keterangan
+                TextField(
+                  controller: keteranganController,
+                  decoration: const InputDecoration(
+                    labelText: "Keterangan",
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Batal"),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.indigo,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            icon: const Icon(Icons.check_circle, color: Colors.white),
+            label: const Text(
+              "Bayar",
+              style: TextStyle(color: Colors.white),
+            ),
+            onPressed: () {
+  final nominalStr = nominalController.text.replaceAll(".", "").replaceAll(",", "");
+  final ket = keteranganController.text.trim();
+
+  if (nominalStr.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Nominal harus diisi")),
+    );
+    return;
+  }
+
+  final nominalInt = int.parse(nominalStr);
+
+  Navigator.pop(context);
+
+  prosesPembayaran(
+    widget.invoice['id'].toString(),
+    nominalInt,
+    ket,
+  );
+},
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<void> prosesPembayaran(String idSo1, int nominal, String keterangan) async {
+  final url = Uri.parse("http://192.168.1.3/nindo/bayar_invoice.php");
+
+  final response = await http.post(url, body: {
+    'id_so1': idSo1,
+    'nominal': nominal.toString(),
+    'keterangan': keterangan,
+  });
+
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    if (data['success']) {
+      // ✅ Refresh data dan tampilkan pesan sukses
+      fetchProduct(); // reload data
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(data['message'])),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Gagal: ${data['message']}")),
+      );
+    }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Gagal menghubungi server")),
+    );
+  }
+}
+
+
+  Future<void> _loadUser() async {
+  final prefs = await SharedPreferences.getInstance();
+  setState(() {
+    idUser = prefs.getString('id_user');
+  });
+}
 
   Future<void> fetchProduct() async {
     setState(() {
@@ -41,7 +215,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
     final invoiceId = widget.invoice['id']?.toString().trim() ?? '';
     //print('InvoiceId: $invoiceId');
 
-    final url = Uri.parse("http://192.168.1.11/nindo/bank/barang_keluar.php");
+    final url = Uri.parse("http://192.168.1.3/nindo/barang_keluar.php");
 
     try {
       final response = await http.get(url);
@@ -156,6 +330,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
     final statusColor = _getStatusColor(status);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: Container(
@@ -299,7 +474,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
                     ],
                   ),
                 ),
-
+                
                 // Total Semua
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -321,27 +496,51 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
                 ),
 
                 // Sisa Tagihan
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  width: double.infinity,
-                  color: Colors.grey.shade100,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Sisa Tagihan",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text(
-                        formatRupiah(sisaTagihan.toDouble()),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // Sisa Tagihan
+Container(
+  padding: const EdgeInsets.all(16),
+  width: double.infinity,
+  color: Colors.grey.shade100,
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      const Text(
+        "Sisa Tagihan",
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+      Text(
+        formatRupiah(sisaTagihan.toDouble()),
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.red,
+        ),
+      ),
+    ],
+  ),
+),
+
+// ✅ Tombol Bayar kecil di kanan
+if (idUser == "sa")
+  Container(
+    alignment: Alignment.centerRight,
+    padding: const EdgeInsets.only(right: 16, bottom: 12),
+    child: ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.indigo,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      onPressed: () {
+        showPembayaranDialog(context, sisaTagihan);
+      },
+      icon: const Icon(Icons.payment, size: 18, color: Colors.white),
+      label: const Text("Bayar",
+          style: TextStyle(fontSize: 14, color: Colors.white)),
+    ),
+  ),
               ],
             ),
         ],

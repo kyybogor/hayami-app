@@ -52,7 +52,7 @@ class _BankDetailPageState extends State<BankDetailPage> {
             onPressed: () async {
               final response = await http.post(
                 Uri.parse(
-                    'http://192.168.1.13/nindo/bank/bank_api.php?action=edit'),
+                    'http://192.168.1.13/nindo/bank_api.php?action=edit'),
                 body: {
                   'id': bank['id'].toString(),
                   'nama_bank': namaBankController.text,

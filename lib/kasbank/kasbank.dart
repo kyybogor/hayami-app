@@ -24,7 +24,7 @@ class _KasBankPageState extends State<KasBankPage> {
   Future<void> fetchBankData() async {
     setState(() => isLoading = true);
     final response = await http.get(
-      Uri.parse('http://192.168.1.13/nindo/bank/bank_api.php?action=get'),
+      Uri.parse('http://192.168.1.3/nindo/bank_api.php?action=get'),
     );
 
     if (response.statusCode == 200) {
