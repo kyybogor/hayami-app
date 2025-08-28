@@ -15,92 +15,107 @@ class BelumDibayarPembelian extends StatefulWidget {
 
 class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _startDateController = TextEditingController();
+  final TextEditingController _endDateController = TextEditingController();
+
   List<Map<String, dynamic>> invoices = [];
   List<Map<String, dynamic>> filteredInvoices = [];
   bool isLoading = true;
   bool dataChanged = false;
 
-  String selectedMonth = DateFormat('MM').format(DateTime.now());
-  String selectedYear = DateFormat('yyyy').format(DateTime.now());
+  DateTime? startDate;
+  DateTime? endDate;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+
+    _startDateController.addListener(() => setState(() {}));
+    _endDateController.addListener(() => setState(() {}));
+
     fetchInvoices();
   }
 
-Future<void> fetchInvoices() async {
-  try {
-    final response = await http.get(
-      Uri.parse('http://192.168.1.10/nindo/stockin%20-%20Copy.php?action=po'),
-    );
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _startDateController.dispose();
+    _endDateController.dispose();
+    super.dispose();
+  }
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> result = json.decode(response.body);
-      final List<dynamic> data = result['data'];
+  Future<void> fetchInvoices() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://192.168.1.20/nindo/stockin%20-%20Copy.php?action=po'),
+      );
 
-      invoices = data.map<Map<String, dynamic>>((item) {
-        return {
-          "id": item["id_po1"],
-          "name": item["supplier"]["nama"],
-          "alamat": item["supplier"]["alamat"],
-          "hp": item["supplier"]["hp"],
-          "invoice": item["id_po1"],
-          "date": item["tanggal"],
-          "due": item["tanggal"], // ganti jika punya field due_date
-          "amount": item["total"].toString(),
-          "status": "Belum Dibayar",
-          "total": item["total"],
-          // Jika detail ingin dipanggil nanti, bisa simpan ID di sini
-          "id_po1": item["id_po1"]
-        };
-      }).toList();
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> result = json.decode(response.body);
+        final List<dynamic> data = result['data'];
 
+        invoices = data.map<Map<String, dynamic>>((item) {
+          return {
+            "id": item["id_po1"],
+            "name": item["supplier"]["nama"],
+            "alamat": item["supplier"]["alamat"],
+            "hp": item["supplier"]["hp"],
+            "invoice": item["id_po1"],
+            "date": item["tanggal"],
+            "due": item["tanggal"],
+            "amount": item["total"].toString(),
+            "status": "Belum Dibayar",
+            "total": item["total"],
+            "id_po1": item["id_po1"]
+          };
+        }).toList();
+
+        setState(() {
+          filteredInvoices = invoices;
+          isLoading = false;
+        });
+        filterByDateRange();
+      } else {
+        throw Exception('Gagal mengambil data');
+      }
+    } catch (e) {
+      print("Error: $e");
       setState(() {
-        filteredInvoices = invoices;
         isLoading = false;
       });
-    } else {
-      throw Exception('Gagal mengambil data');
     }
-  } catch (e) {
-    print("Error: $e");
-    setState(() {
-      isLoading = false;
-    });
   }
-}
 
-  void filterByMonthYear() {
+  void filterByDateRange() {
     setState(() {
       filteredInvoices = invoices.where((invoice) {
         try {
           final invoiceDate = DateFormat('yyyy-MM-dd').parse(invoice["date"]);
-          final matchMonth = selectedMonth == 'Semua' ||
-              invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
-          final matchYear = selectedYear == 'Semua' ||
-              invoiceDate.year.toString() == selectedYear;
-          return matchMonth && matchYear;
+
+          bool matchesStart =
+              startDate == null || !invoiceDate.isBefore(startDate!);
+          bool matchesEnd = endDate == null || !invoiceDate.isAfter(endDate!);
+
+          return matchesStart && matchesEnd;
         } catch (e) {
           return false;
         }
       }).toList();
+
+      _onSearchChanged();
     });
   }
 
   void _onSearchChanged() {
     String keyword = _searchController.text.toLowerCase();
+
     setState(() {
-      filteredInvoices = invoices.where((invoice) {
-        final invoiceDate = DateFormat('yyyy-MM-dd').parse(invoice["date"]);
-        final matchMonth = selectedMonth == 'Semua' ||
-            invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
-        final matchYear = selectedYear == 'Semua' ||
-            invoiceDate.year.toString() == selectedYear;
-        return invoice["name"].toString().toLowerCase().contains(keyword) &&
-            matchMonth &&
-            matchYear;
+      filteredInvoices = filteredInvoices.where((invoice) {
+        final name = invoice["name"].toString().toLowerCase();
+        final invoiceId = invoice["invoice"].toString().toLowerCase();
+
+        return name.contains(keyword) || invoiceId.contains(keyword);
       }).toList();
     });
   }
@@ -118,10 +133,80 @@ Future<void> fetchInvoices() async {
     }
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  Future<void> _selectDate(BuildContext context, bool isStart) async {
+    DateTime? tempPickedDate = isStart ? startDate : endDate;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              title: Text(
+                  isStart ? 'Pilih Tanggal Mulai' : 'Pilih Tanggal Selesai'),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 300,
+                child: CalendarDatePicker(
+                  initialDate: tempPickedDate ?? DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime.now(),
+                  onDateChanged: (DateTime date) {
+                    setModalState(() {
+                      tempPickedDate = date;
+                    });
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      if (isStart) {
+                        startDate = null;
+                        _startDateController.clear();
+                      } else {
+                        endDate = null;
+                        _endDateController.clear();
+                      }
+                      filterByDateRange();
+                    });
+                  },
+                  child: const Text("Clear"),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Batal"),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    if (tempPickedDate != null) {
+                      setState(() {
+                        if (isStart) {
+                          startDate = tempPickedDate;
+                          _startDateController.text =
+                              DateFormat('yyyy-MM-dd').format(tempPickedDate!);
+                        } else {
+                          endDate = tempPickedDate;
+                          _endDateController.text =
+                              DateFormat('yyyy-MM-dd').format(tempPickedDate!);
+                        }
+                        filterByDateRange();
+                      });
+                    }
+                  },
+                  child: const Text("Pilih"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -169,77 +254,36 @@ Future<void> fetchInvoices() async {
               child: Row(
                 children: [
                   Flexible(
-                    flex: 1,
-                    child: DropdownButtonFormField<String>(
-                      value: selectedMonth,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.calendar_today),
-                        labelText: "Bulan",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.blue.shade50,
-                      ),
-                      items: [
-                        'Semua',
-                        ...List.generate(12, (index) {
-                          final month = (index + 1).toString().padLeft(2, '0');
-                          return month;
-                        })
-                      ].map((month) {
-                        return DropdownMenuItem(
-                          value: month,
-                          child: Text(
-                            month == 'Semua'
-                                ? 'Semua Bulan'
-                                : DateFormat('MMMM')
-                                    .format(DateTime(0, int.parse(month))),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            selectedMonth = value;
-                          });
-                          filterByMonthYear();
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    flex: 1,
-                    child: DropdownButtonFormField<String>(
-                      value: selectedYear,
-                      isExpanded: true,
+                    child: TextField(
+                      controller: _startDateController,
+                      readOnly: true,
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.date_range),
-                        labelText: "Tahun",
+                        labelText: 'Tanggal Mulai',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
                         ),
                         filled: true,
                         fillColor: Colors.blue.shade50,
                       ),
-                      items: ['Semua', '2023', '2024', '2025'].map((year) {
-                        return DropdownMenuItem(
-                          value: year,
-                          child: Text(year == 'Semua' ? 'Semua Tahun' : year),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            selectedYear = value;
-                          });
-                          filterByMonthYear();
-                        }
-                      },
+                      onTap: () => _selectDate(context, true),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: TextField(
+                      controller: _endDateController,
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.date_range),
+                        labelText: 'Tanggal Selesai',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        filled: true,
+                        fillColor: Colors.blue.shade50,
+                      ),
+                      onTap: () => _selectDate(context, false),
                     ),
                   ),
                 ],
@@ -296,9 +340,12 @@ Future<void> fetchInvoices() async {
                                             invoice: invoice),
                                   ),
                                 );
+
                                 if (result == true) {
-                                  fetchInvoices();
-                                  dataChanged = true;
+                                  setState(() {
+                                    isLoading = true;
+                                  });
+                                  await fetchInvoices();
                                 }
                               },
                             );
@@ -309,12 +356,20 @@ Future<void> fetchInvoices() async {
         ),
         floatingActionButton: FloatingActionButton(
           backgroundColor: Colors.blue,
-          onPressed: () {
-            Navigator.push(
+          onPressed: () async {
+            final result = await Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => const TambahTagihanPage()),
+                builder: (context) => const TambahTagihanPage(),
+              ),
             );
+
+            if (result == true) {
+              setState(() {
+                isLoading = true;
+              });
+              await fetchInvoices();
+            }
           },
           child: const Icon(Icons.add),
         ),

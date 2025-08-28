@@ -48,7 +48,7 @@ class _TambahProdukPageState extends State<TambahProdukPage> {
   }
 
   Future<void> _fetchKategori() async {
-    final url = Uri.parse('http://192.168.1.9/nindo2/kategori.php');
+    final url = Uri.parse('http://192.168.1.20/nindo/kategori.php');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -110,59 +110,52 @@ class _TambahProdukPageState extends State<TambahProdukPage> {
     }
   }
 
-  Future<void> _submitProduk() async {
-    // Validasi untuk kolom gambar kosong
-    if (_formKey.currentState!.validate()) {
-      if (_selectedKategoriId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kategori harus dipilih')),
-        );
-        return;
-      }
+Future<void> _submitProduk() async {
+  if (_formKey.currentState!.validate()) {
+    if (_selectedKategoriId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kategori harus dipilih')),
+      );
+      return;
+    }
 
-      if (_selectedImage == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gambar produk harus dipilih')),
-        );
-        return;
-      }
+    final url = Uri.parse('http://192.168.1.20/nindo/tambah_produk.php');
+    try {
+      final response = await http.post(url, body: {
+        'nm_product': _namaController.text,
+        'gambar': _base64Image ?? '',
+        'minim': _minimController.text,
+        'maxim': _maximController.text,
+        'price': _hargaController.text,
+        'brand': _selectedKategoriId ?? '',
+        'id_cabang': 'pusat',
+      });
 
-      final url = Uri.parse('http://192.168.1.10/nindo/tambah_produk.php');
-      try {
-        final response = await http.post(url, body: {
-          'nm_product': _namaController.text,
-          'gambar': _base64Image ?? '',
-          'minim': _minimController.text,
-          'maxim': _maximController.text,
-          'price': _hargaController.text,
-          'brand': _selectedKategoriId ?? '',
-          'id_cabang': 'pusat',
-        });
-
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          if (data['status'] == 'success') {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Produk berhasil ditambahkan')),
-            );
-            Navigator.pop(context, true);
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Gagal menambahkan produk: ${data['message']}')),
-            );
-          }
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Produk berhasil ditambahkan')),
+          );
+          Navigator.pop(context, true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Terjadi kesalahan jaringan')),
+            SnackBar(content: Text('Gagal menambahkan produk: ${data['message']}')),
           );
         }
-      } catch (e) {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Terjadi kesalahan saat mengirim data')),
+          const SnackBar(content: Text('Terjadi kesalahan jaringan')),
         );
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Terjadi kesalahan saat mengirim data')),
+      );
     }
   }
+}
+
 
   @override
 Widget build(BuildContext context) {
@@ -233,21 +226,21 @@ Widget build(BuildContext context) {
                       label: 'Harga Jual',
                       icon: Icons.attach_money,
                       keyboardType: TextInputType.number,
-                      validator: (v) => (v == null || v.isEmpty) ? 'Masukkan harga jual' : null,
+                      validator: (v) => null,
                     ),
                     buildTextField(
                       controller: _minimController,
                       label: 'Minimal Stok',
                       icon: Icons.remove_circle_outline,
                       keyboardType: TextInputType.number,
-                      validator: (v) => (v == null || v.isEmpty) ? 'Masukkan minimal stok' : null,
+                      validator: (v) => null,
                     ),
                     buildTextField(
                       controller: _maximController,
                       label: 'Maksimal Stok',
                       icon: Icons.add_circle_outline,
                       keyboardType: TextInputType.number,
-                      validator: (v) => (v == null || v.isEmpty) ? 'Masukkan maksimal stok' : null,
+                      validator: (v) => null,
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(

@@ -117,7 +117,7 @@ class ProductDetailPage extends StatelessWidget {
                 CircleAvatar(
                   radius: 40,
                   backgroundImage: NetworkImage(
-                      'http://192.168.1.10/nindo/${product['gambar']}'),
+                      'http://192.168.1.20/nindo/${product['gambar']}'),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -148,62 +148,62 @@ class ProductDetailPage extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            _sectionHeader('Gudang'),
-            const SizedBox(height: 8),
-            if (product['gudang']?['unassigned'] == null &&
-                product['gudang']?['gudang_utama'] == null &&
-                product['gudang']?['gudang_elektronik'] == null)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('Tidak ada data gudang.'),
-              )
-            else ...[
-              if (product['gudang']?['unassigned'] != null)
-                _buildWarehouseRow('Unassigned',
-                    displayValue(product['gudang']['unassigned'])),
-              if (product['gudang']?['gudang_utama'] != null)
-                _buildWarehouseRow('Gudang Utama',
-                    displayValue(product['gudang']['gudang_utama'])),
-              if (product['gudang']?['gudang_elektronik'] != null)
-                _buildWarehouseRow('Gudang Elektronik',
-                    displayValue(product['gudang']['gudang_elektronik'])),
-              const Divider(),
-              _buildWarehouseRow('Total', displayValue(product['total_gudang']),
-                  isBold: true),
-            ],
-            const SizedBox(height: 24),
-            _sectionHeaderWithAction(
-                context, 'Transaksi Terkini', 'Lihat Semua',
-                actionColor: Colors.blue),
-            const SizedBox(height: 8),
-            ...transaksiTerkini.map((trx) {
-              return _buildTransactionRow(
-                displayValue(trx['title']),
-                displayValue(trx['amount']),
-                displayValue(trx['date']),
-              );
-            }).toList(),
-            const SizedBox(height: 24),
-            _sectionHeaderWithAction(context, 'Pergerakan Stok', 'Lihat Semua',
-                actionColor: Colors.blue),
-            const SizedBox(height: 8),
-            _buildStockMovement('Tagihan Penjualan', '-2', Colors.red),
-            _buildStockMovement('Tagihan Pembelian', '+2', Colors.green),
-            _buildStockMovement('Tagihan Penjualan', '-3', Colors.red),
-            const SizedBox(height: 24),
-            _sectionHeaderWithAction(context, 'Transfer Gudang', 'Lihat Semua',
-                actionColor: Colors.blue),
-            const SizedBox(height: 8),
-            ...transferGudang.map((transfer) {
-              return ListTile(
-                title: Text(displayValue(transfer['kode'])),
-                subtitle: Text(displayValue(transfer['tanggal'])),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {},
-              );
-            }).toList(),
-            const SizedBox(height: 80),
+            // const SizedBox(height: 24),
+            // _sectionHeader('Gudang'),
+            // const SizedBox(height: 8),
+            // if (product['gudang']?['unassigned'] == null &&
+            //     product['gudang']?['gudang_utama'] == null &&
+            //     product['gudang']?['gudang_elektronik'] == null)
+            //   const Padding(
+            //     padding: EdgeInsets.symmetric(vertical: 8),
+            //     child: Text('Tidak ada data gudang.'),
+            //   )
+            // else ...[
+            //   if (product['gudang']?['unassigned'] != null)
+            //     _buildWarehouseRow('Unassigned',
+            //         displayValue(product['gudang']['unassigned'])),
+            //   if (product['gudang']?['gudang_utama'] != null)
+            //     _buildWarehouseRow('Gudang Utama',
+            //         displayValue(product['gudang']['gudang_utama'])),
+            //   if (product['gudang']?['gudang_elektronik'] != null)
+            //     _buildWarehouseRow('Gudang Elektronik',
+            //         displayValue(product['gudang']['gudang_elektronik'])),
+            //   const Divider(),
+            //   _buildWarehouseRow('Total', displayValue(product['total_gudang']),
+            //       isBold: true),
+            // ],
+            // const SizedBox(height: 24),
+            // _sectionHeaderWithAction(
+            //     context, 'Transaksi Terkini', 'Lihat Semua',
+            //     actionColor: Colors.blue),
+            // const SizedBox(height: 8),
+            // ...transaksiTerkini.map((trx) {
+            //   return _buildTransactionRow(
+            //     displayValue(trx['title']),
+            //     displayValue(trx['amount']),
+            //     displayValue(trx['date']),
+            //   );
+            // }).toList(),
+            // const SizedBox(height: 24),
+            // _sectionHeaderWithAction(context, 'Pergerakan Stok', 'Lihat Semua',
+            //     actionColor: Colors.blue),
+            // const SizedBox(height: 8),
+            // _buildStockMovement('Tagihan Penjualan', '-2', Colors.red),
+            // _buildStockMovement('Tagihan Pembelian', '+2', Colors.green),
+            // _buildStockMovement('Tagihan Penjualan', '-3', Colors.red),
+            // const SizedBox(height: 24),
+            // _sectionHeaderWithAction(context, 'Transfer Gudang', 'Lihat Semua',
+            //     actionColor: Colors.blue),
+            // const SizedBox(height: 8),
+            // ...transferGudang.map((transfer) {
+            //   return ListTile(   
+            //     title: Text(displayValue(transfer['kode'])),
+            //     subtitle: Text(displayValue(transfer['tanggal'])),
+            //     trailing: const Icon(Icons.chevron_right),
+            //     onTap: () {},
+            //   );
+            // }).toList(),
+            // const SizedBox(height: 80),
           ],
         ),
       ),
