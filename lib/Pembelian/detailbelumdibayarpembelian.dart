@@ -9,10 +9,12 @@ class DetailBelumDibayarPembelian extends StatefulWidget {
   const DetailBelumDibayarPembelian({super.key, required this.invoice});
 
   @override
-  State<DetailBelumDibayarPembelian> createState() => _DetailBelumDibayarPembelianState();
+  State<DetailBelumDibayarPembelian> createState() =>
+      _DetailBelumDibayarPembelianState();
 }
 
-class _DetailBelumDibayarPembelianState extends State<DetailBelumDibayarPembelian> {
+class _DetailBelumDibayarPembelianState
+    extends State<DetailBelumDibayarPembelian> {
   List<dynamic> barang = [];
   int totalInvoice = 0;
   int sisaTagihan = 0;
@@ -21,70 +23,57 @@ class _DetailBelumDibayarPembelianState extends State<DetailBelumDibayarPembelia
   @override
   void initState() {
     super.initState();
-    fetchProduct();
+    fetchDetail();
   }
 
-  Future<void> fetchProduct() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    final invoiceId = widget.invoice['id']?.toString().trim() ?? '';
-    final url = Uri.parse("http://192.168.1.8/nindo/stockin.php");
+  Future<void> fetchDetail() async {
+    final idPo1 = widget.invoice['id_po1'] ?? widget.invoice['id'];
+    final url =
+        'http://192.168.1.10/nindo/stockin%20-%20Copy.php?action=detail&id_po1=$idPo1';
 
     try {
-      final response = await http.get(url);
+      final response = await http.get(Uri.parse(url));
+
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> allData = data['data'];
+        final Map<String, dynamic> result = json.decode(response.body);
 
-        final matchedInvoice = allData.firstWhere(
-          (item) => item['id_po1'].toString().trim() == invoiceId,
-          orElse: () => null,
-        );
+        if (result['status'] == 'success' && result['data'].isNotEmpty) {
+          final data = result['data'][0];
 
-        if (matchedInvoice != null) {
           setState(() {
-            totalInvoice = matchedInvoice['total'] ?? 0;
-            sisaTagihan = matchedInvoice['sisa_hutang'] ?? 0;
-            barang = (matchedInvoice['produk'] as List<dynamic>).map((produk) {
-              final price = double.tryParse(produk['price'].toString()) ?? 0;
-              final totalHarga = double.tryParse(produk['total_harga'].toString()) ?? 0;
-              final qty = produk['qty'] ?? 0;
-
-              return {
-                'nama_barang': produk['nama_produk'] ?? 'Tidak Diketahui',
-                'jumlah': totalHarga.toString(),
-                'qty': qty,
-                'harga': price.toString(),
-                'total': totalHarga.toString(),
-              };
-            }).toList();
-            isLoading = false;
-          });
-        } else {
-          setState(() {
-            barang = [];
-            totalInvoice = 0;
-            sisaTagihan = 0;
-            isLoading = false;
+            barang = data['produk'] ?? [];
+            totalInvoice = (data['total'] as num?)?.toInt() ?? 0;
+            sisaTagihan = (data['sisa_hutang'] as num?)?.toInt() ?? 0;
+            widget.invoice['disc_nominal'] = data['disc_nominal'];
+            widget.invoice['disc_persen'] = data['disc_persen'];
           });
         }
       } else {
-        setState(() {
-          isLoading = false;
-        });
+        throw Exception('Gagal mengambil detail PO');
       }
     } catch (e) {
+      print("Error fetchDetail: $e");
+      setState(() {
+        barang = [];
+        totalInvoice = 0;
+        sisaTagihan = 0;
+      });
+    } finally {
       setState(() {
         isLoading = false;
       });
     }
   }
 
-  String formatRupiah(double number) {
-    final formatter = NumberFormat.currency(locale: "id_ID", symbol: "Rp ", decimalDigits: 0);
-    return formatter.format(number);
+  String formatRupiah(dynamic number) {
+    final double value = number is String
+        ? double.tryParse(number) ?? 0
+        : number is int
+            ? number.toDouble()
+            : number ?? 0;
+    return NumberFormat.currency(
+            locale: "id_ID", symbol: "Rp ", decimalDigits: 0)
+        .format(value);
   }
 
   Color _getStatusColor(String status) {
@@ -120,7 +109,7 @@ class _DetailBelumDibayarPembelianState extends State<DetailBelumDibayarPembelia
     final status = invoice['status'] ?? 'belum dibayar';
     final statusColor = _getStatusColor(status);
 
-    return Scaffold(  
+    return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: Container(
@@ -132,7 +121,8 @@ class _DetailBelumDibayarPembelianState extends State<DetailBelumDibayarPembelia
             ),
           ),
           child: AppBar(
-            title: const Text('Tagihan', style: TextStyle(fontWeight: FontWeight.bold)),
+            title: const Text('Tagihan',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             centerTitle: true,
             backgroundColor: Colors.transparent,
             foregroundColor: Colors.white,
@@ -140,99 +130,173 @@ class _DetailBelumDibayarPembelianState extends State<DetailBelumDibayarPembelia
           ),
         ),
       ),
-      body: Column(
-        children: [
-          _buildHeader(invoiceNumber, contactName, alamat, hp, date, dueDate, status, statusColor),
-          const SizedBox(height: 12),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Barang Dibeli", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ),
-          ),
-          Expanded(
-            child: isLoading
-                ? const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 12),
-                        Text("Mohon tunggu sebentar, sedang mencari produk"),
-                      ],
-                    ),
-                  )
-                : barang.isEmpty
-                    ? const Center(child: Text("Tidak ada barang untuk invoice ini."))
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: barang.length,
-                        itemBuilder: (context, index) {
-                          final item = barang[index];
-                          final harga = double.tryParse(item['harga'] ?? '0') ?? 0;
-                          final total = double.tryParse(item['total'] ?? '0') ?? 0;
-                          final qty = item['qty'] ?? 0;
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                _buildHeader(invoiceNumber, contactName, alamat, hp, date,
+                    dueDate, status, statusColor),
+                const SizedBox(height: 12),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text("Barang Dibeli",
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                Expanded(
+                  child: barang.isEmpty
+                      ? const Center(
+                          child: Text("Tidak ada barang untuk invoice ini."))
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: barang.length,
+                          itemBuilder: (context, index) {
+                            final item = barang[index];
+                            final harga =
+                                double.tryParse(item['price'].toString()) ?? 0;
+                            final total = double.tryParse(
+                                    item['total_harga'].toString()) ??
+                                0;
+                            final qty = item['qty'] ?? 0;
 
-                          return Card(
-                            child: ListTile(
-                              title: Text(item['nama_barang'] ?? 'Tidak Diketahui'),
-                              subtitle: Text("$qty pcs x ${formatRupiah(harga)}"),
-                              trailing: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                decoration: BoxDecoration(
-                                  color: statusColor.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  formatRupiah(total),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: statusColor,
+                            return Card(
+                              child: ListTile(
+                                title: Text(
+                                    item['nama_produk'] ?? 'Tidak Diketahui'),
+                                subtitle:
+                                    Text("$qty pcs x ${formatRupiah(harga)}"),
+                                trailing: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 4, horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: statusColor.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    formatRupiah(total),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: statusColor,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
+                ),
+                if (barang.isNotEmpty)
+                  Column(
+                    children: [
+                      if ((widget.invoice['disc_nominal'] ?? 0) > 0 ||
+                          (widget.invoice['disc_persen'] ?? 0) > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 8, horizontal: 16),
+                          width: double.infinity,
+                          color: Colors.grey.shade100,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              if ((widget.invoice['disc_nominal'] ?? 0) > 0)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 24),
+                                  child: RichText(
+                                    text: TextSpan(
+                                      style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87),
+                                      children: [
+                                        const TextSpan(text: 'Diskon (Rp): '),
+                                        TextSpan(
+                                          text: formatRupiah(widget.invoice[
+                                                  'disc_nominal'] ??
+                                              0),
+                                          style: const TextStyle(
+                                              color: Colors.green),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              if ((widget.invoice['disc_persen'] ?? 0) > 0)
+                                RichText(
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87),
+                                    children: [
+                                      const TextSpan(text: 'Diskon (%): '),
+                                      TextSpan(
+                                        text:
+                                            "${widget.invoice['disc_persen']}%",
+                                        style: const TextStyle(
+                                            color: Colors.green),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        width: double.infinity,
+                        color: Colors.grey.shade200,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("Total Semua",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                            Text(formatRupiah(totalInvoice),
+                                style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold)),
+                          ],
+                        ),
                       ),
-          ),
-          if (!isLoading && barang.isNotEmpty)
-            Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  width: double.infinity,
-                  color: Colors.grey.shade200,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Total Semua", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text(formatRupiah(totalInvoice.toDouble()), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        width: double.infinity,
+                        color: Colors.grey.shade100,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("Sisa Tagihan",
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black)),
+                            Text(formatRupiah(sisaTagihan),
+                                style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red)),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  width: double.infinity,
-                  color: Colors.grey.shade100,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Sisa Tagihan", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text(formatRupiah(sisaTagihan.toDouble()), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red)),
-                    ],
-                  ),
-                ),
               ],
             ),
-        ],
-      ),
     );
   }
 
-  Widget _buildHeader(String invoiceNumber, String contactName, String alamat, String hp,
-      String date, String dueDate, String status, Color statusColor) {
+  Widget _buildHeader(
+      String invoiceNumber,
+      String contactName,
+      String alamat,
+      String hp,
+      String date,
+      String dueDate,
+      String status,
+      Color statusColor) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -250,13 +314,19 @@ class _DetailBelumDibayarPembelianState extends State<DetailBelumDibayarPembelia
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(invoiceNumber, style: const TextStyle(fontSize: 16, color: Colors.white70)),
+          Text(invoiceNumber,
+              style: const TextStyle(fontSize: 16, color: Colors.white70)),
           const SizedBox(height: 16),
-          Text(contactName, style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+          Text(contactName,
+              style: const TextStyle(
+                  fontSize: 18,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),
           Text(hp, style: const TextStyle(fontSize: 13, color: Colors.white)),
           const SizedBox(height: 2),
-          Text(alamat, style: const TextStyle(fontSize: 13, color: Colors.white)),
+          Text(alamat,
+              style: const TextStyle(fontSize: 13, color: Colors.white)),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
@@ -276,7 +346,9 @@ class _DetailBelumDibayarPembelianState extends State<DetailBelumDibayarPembelia
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(status, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w500)),
+                Text(status,
+                    style: const TextStyle(
+                        color: Colors.black, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -286,18 +358,19 @@ class _DetailBelumDibayarPembelianState extends State<DetailBelumDibayarPembelia
             children: [
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 16, color: Colors.white),
+                  const Icon(Icons.calendar_today,
+                      size: 16, color: Colors.white),
                   const SizedBox(width: 6),
                   Text(date, style: const TextStyle(color: Colors.white)),
                 ],
               ),
-              Row(
-                children: [
-                  const Icon(Icons.access_time, size: 16, color: Colors.white),
-                  const SizedBox(width: 6),
-                  Text(dueDate, style: const TextStyle(color: Colors.white)),
-                ],
-              ),
+              // Row(
+              //   children: [
+              //     const Icon(Icons.access_time, size: 16, color: Colors.white),
+              //     const SizedBox(width: 6),
+              //     Text(dueDate, style: const TextStyle(color: Colors.white)),
+              //   ],
+              // ),
             ],
           ),
         ],

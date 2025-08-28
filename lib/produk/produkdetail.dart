@@ -103,7 +103,7 @@ class ProductDetailPage extends StatelessWidget {
               child: Row(
                 children: [
                   _buildInfoCard('Stok Tersedia',
-                      displayValue(product['stok']), Colors.pink),
+                      displayValue(product['qty']), Colors.pink),
                   _buildInfoCard('Minimal Stok',
                       displayValue(product['minim']), Colors.orange),
                   _buildInfoCard(
@@ -117,7 +117,7 @@ class ProductDetailPage extends StatelessWidget {
                 CircleAvatar(
                   radius: 40,
                   backgroundImage: NetworkImage(
-                      'http://192.168.1.8/nindo/${product['gambar']}'),
+                      'http://192.168.1.10/nindo/${product['gambar']}'),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -141,7 +141,7 @@ class ProductDetailPage extends StatelessWidget {
                         const Icon(Icons.sell),
                         const SizedBox(width: 8),
                         Text(
-                            'Harga Jual: ${product['price'] == null ? '-' : formatRupiah(product['harga_jual'])}')
+                            'Harga Jual: ${product['price'] == null ? '-' : formatRupiah(product['price'])}')
                       ]),
                     ],
                   ),

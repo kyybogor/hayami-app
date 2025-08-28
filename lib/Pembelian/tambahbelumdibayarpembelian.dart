@@ -1,6 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:hayami_app/Pembelian/detailpembelian.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+
 // Model Item untuk data produk yang ditambahkan
 class Item {
   final String product;
@@ -19,7 +24,8 @@ class Item {
 
   double get subtotal => quantity * price;
 
-  double get totalDiscount => discountRp + (discountPercent / 100) * subtotal;
+  double get totalDiscount =>
+      (discountRp * quantity) + (discountPercent / 100) * subtotal;
 
   double get total => (subtotal - totalDiscount).clamp(0, double.infinity);
 }
@@ -36,16 +42,87 @@ class _TambahTagihanPageState extends State<TambahTagihanPage> {
   String? selectedSupplier;
   DateTime selectedDate = DateTime.now();
 
-  final TextEditingController diskonRpController = TextEditingController(text: '0');
-  final TextEditingController diskonPersenController = TextEditingController(text: '0');
+  final TextEditingController diskonRpController =
+      TextEditingController(text: '0');
+  final TextEditingController diskonPersenController =
+      TextEditingController(text: '0');
 
-double get subtotalItems {
-  return items.fold(0, (sum, item) => sum + item.total);
-}
+  double get subtotalItems {
+    return items.fold(0, (sum, item) => sum + item.total);
+  }
+
+  Future<void> _simpanTagihanKeServer() async {
+    // Ambil id_user dari SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final idUser = prefs.getString('id_user');
+
+    if (idUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('User tidak ditemukan. Silakan login ulang.')),
+      );
+      return;
+    }
+
+    const url = 'http://192.168.1.10/nindo/tambahstock.php?action=save_po';
+
+    final data = {
+      "id_user": idUser, // <-- id_user ditambahkan di sini
+      "tgl_po": selectedDate.toIso8601String(),
+      "id_supplier": selectedSupplier,
+      "disc_nominal":
+          double.tryParse(diskonRpController.text.replaceAll('.', '')) ?? 0,
+      "disc_persen":
+          double.tryParse(diskonPersenController.text.replaceAll('.', '')) ?? 0,
+      "net_total": totalTagihan,
+      "items": items
+          .map((item) => {
+                "id_bahan": item.product,
+                "qty": item.quantity,
+                "harga": item.price,
+                "total": item.total,
+                "disc_nominal": item.discountRp,
+                "disc_persen": item.discountPercent,
+              })
+          .toList(),
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(data),
+      );
+
+      final result = json.decode(response.body);
+
+      if (response.statusCode == 200 && result['success'] == true) {
+        final invoice = result['invoice'];
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DetailPembelian(invoice: invoice),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text('Gagal simpan: ${result['error'] ?? 'Unknown error'}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error koneksi: $e')),
+      );
+    }
+  }
 
   double get totalDiskonTagihan {
-    final diskonRp = double.tryParse(diskonRpController.text) ?? 0;
-    final diskonPersen = double.tryParse(diskonPersenController.text) ?? 0;
+    final diskonRp =
+        double.tryParse(diskonRpController.text.replaceAll('.', '')) ?? 0;
+    final diskonPersen =
+        double.tryParse(diskonPersenController.text.replaceAll('.', '')) ?? 0;
     double diskonPercentValue = (diskonPersen / 100) * subtotalItems;
     double totalDiskon = diskonRp + diskonPercentValue;
     return totalDiskon.clamp(0, subtotalItems);
@@ -81,6 +158,12 @@ double get subtotalItems {
     }
   }
 
+  final currencyFormatter = NumberFormat.currency(
+    locale: 'id_ID',
+    symbol: 'Rp',
+    decimalDigits: 0,
+  );
+
   @override
   void dispose() {
     diskonRpController.dispose();
@@ -108,13 +191,13 @@ double get subtotalItems {
       ),
       backgroundColor: Colors.grey[100],
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(10),
         children: [
           Card(
             elevation: 4,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            margin: const EdgeInsets.only(bottom: 20),
+            margin: const EdgeInsets.only(bottom: 10),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -143,48 +226,49 @@ double get subtotalItems {
             ),
           ),
           if (items.isNotEmpty)
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15)),
-              margin: const EdgeInsets.only(bottom: 20),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Item Ditambahkan:',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ...items.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final item = entry.value;
+
+                  return Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
                     ),
-                    const SizedBox(height: 12),
-                    ...items.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final item = entry.value;
-                      return Dismissible(
-                        key: Key(item.product + index.toString()),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          color: Colors.red,
-                          child: const Icon(Icons.delete, color: Colors.white),
-                        ),
-                        onDismissed: (direction) {
-                          setState(() {
-                            items.removeAt(index);
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Item "${item.product}" dihapus')),
-                          );
-                        },
+                    margin: const EdgeInsets.only(bottom: 10),
+                    child: Dismissible(
+                      key: Key(item.product + index.toString()),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        color: Colors.red,
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      onDismissed: (direction) {
+                        setState(() {
+                          items.removeAt(index);
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text('Item "${item.product}" dihapus')),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(5),
                         child: ListTile(
                           leading: const Icon(Icons.shopping_bag,
                               color: Colors.indigo),
                           title: Text(item.product),
                           subtitle: Text(
-                              'Qty: ${item.quantity}, Harga: Rp${item.price.toStringAsFixed(0)}\nDiskon: Rp${item.discountRp.toStringAsFixed(0)}, ${item.discountPercent.toStringAsFixed(0)}%\nTotal: Rp${item.total.toStringAsFixed(0)}'),
+                            'Qty: ${item.quantity}, Harga: ${currencyFormatter.format(item.price)}\n'
+                            'Diskon: ${currencyFormatter.format(item.discountRp * item.quantity)}, '
+                            '${item.discountPercent.toStringAsFixed(0)}%\n'
+                            'Total: ${currencyFormatter.format(item.total)}',
+                          ),
                           isThreeLine: true,
                           trailing: IconButton(
                             icon: const Icon(Icons.delete,
@@ -194,21 +278,29 @@ double get subtotalItems {
                                 items.removeAt(index);
                               });
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Item "${item.product}" dihapus')),
+                                SnackBar(
+                                    content:
+                                        Text('Item "${item.product}" dihapus')),
                               );
                             },
                           ),
                         ),
-                      );
-                    }).toList()
-                  ],
-                ),
-              ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ],
             ),
           ElevatedButton.icon(
             onPressed: _tambahItem,
-            icon: const Icon(Icons.add, color: Colors.white,),
-            label: const Text('Tambah Item', style:  TextStyle(color: Colors.white),),
+            icon: const Icon(
+              Icons.add,
+              color: Colors.white,
+            ),
+            label: const Text(
+              'Tambah Item',
+              style: TextStyle(color: Colors.white),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.indigo.shade700,
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -218,7 +310,7 @@ double get subtotalItems {
               elevation: 4,
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 10),
           Card(
             elevation: 4,
             shape:
@@ -229,17 +321,24 @@ double get subtotalItems {
                 children: [
                   ListTile(
                     title: const Text('Subtotal'),
-                    trailing: Text('Rp${subtotalItems.toStringAsFixed(0)}',
-                        style: TextStyle(color: Colors.grey[700])),
+                    trailing: Text(
+                      currencyFormatter.format(subtotalItems),
+                      style: TextStyle(color: Colors.grey[700]),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: diskonRpController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      RupiahInputFormatter(), // Tambahkan ini
+                    ],
                     decoration: InputDecoration(
                       labelText: 'Diskon (Rp)',
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       prefixIcon: const Icon(Icons.money_off),
                     ),
                   ),
@@ -256,11 +355,17 @@ double get subtotalItems {
                   ),
                   const SizedBox(height: 20),
                   ListTile(
-                    title: const Text('Total',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                    trailing: Text('Rp${totalTagihan.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 18)),
+                    title: const Text(
+                      'Total',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    trailing: Text(
+                      currencyFormatter.format(totalTagihan),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -269,10 +374,10 @@ double get subtotalItems {
           const SizedBox(height: 30),
           ElevatedButton(
             onPressed: () {
-              // Simpan data tagihan di sini
               if (selectedSupplier == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Pilih supplier terlebih dahulu')),
+                  const SnackBar(
+                      content: Text('Pilih supplier terlebih dahulu')),
                 );
                 return;
               }
@@ -283,13 +388,7 @@ double get subtotalItems {
                 return;
               }
 
-              // Bisa lanjutkan simpan data ke database atau API
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Tagihan berhasil disimpan!')),
-              );
-
-              Navigator.pop(context);
+              _simpanTagihanKeServer(); // Kirim ke server
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.indigo.shade900,
@@ -345,10 +444,14 @@ class TambahItemPage extends StatefulWidget {
 
 class _TambahItemPageState extends State<TambahItemPage> {
   String? selectedProduct;
-  final TextEditingController kuantitasController = TextEditingController(text: '1');
-  final TextEditingController hargaController = TextEditingController(text: '0');
-  final TextEditingController diskonRpController = TextEditingController(text: '0');
-  final TextEditingController diskonPersenController = TextEditingController(text: '0');
+  final TextEditingController kuantitasController =
+      TextEditingController(text: '1');
+  final TextEditingController hargaController =
+      TextEditingController(text: '0');
+  final TextEditingController diskonRpController =
+      TextEditingController(text: '0');
+  final TextEditingController diskonPersenController =
+      TextEditingController(text: '0');
 
   double total = 0;
 
@@ -362,13 +465,18 @@ class _TambahItemPageState extends State<TambahItemPage> {
   }
 
   void _hitungTotal() {
-    final int kuantitas = int.tryParse(kuantitasController.text) ?? 0;
-    final double harga = double.tryParse(hargaController.text) ?? 0;
-    final double diskonRp = double.tryParse(diskonRpController.text) ?? 0;
-    final double diskonPersen = double.tryParse(diskonPersenController.text) ?? 0;
+    final int kuantitas =
+        int.tryParse(kuantitasController.text.replaceAll('.', '')) ?? 0;
+    final double harga =
+        double.tryParse(hargaController.text.replaceAll('.', '')) ?? 0;
+    final double diskonRp =
+        double.tryParse(diskonRpController.text.replaceAll('.', '')) ?? 0;
+    final double diskonPersen =
+        double.tryParse(diskonPersenController.text.replaceAll('.', '')) ?? 0;
 
     double subtotal = kuantitas * harga;
-    double totalDiskon = diskonRp + ((diskonPersen / 100) * subtotal);
+    double totalDiskon =
+        (diskonRp * kuantitas) + ((diskonPersen / 100) * subtotal);
     double hasil = subtotal - totalDiskon;
 
     setState(() {
@@ -376,11 +484,21 @@ class _TambahItemPageState extends State<TambahItemPage> {
     });
   }
 
+  final currencyFormatter = NumberFormat.currency(
+    locale: 'id_ID',
+    symbol: 'Rp',
+    decimalDigits: 0,
+  );
+
   Widget _buildTextField(String label, TextEditingController controller,
       {IconData? icon, Widget? suffix, Color? color}) {
     return TextField(
       controller: controller,
       keyboardType: TextInputType.number,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        RupiahInputFormatter(),
+      ],
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: icon != null ? Icon(icon) : null,
@@ -454,7 +572,7 @@ class _TambahItemPageState extends State<TambahItemPage> {
           ListTile(
             title: const Text('Total'),
             trailing: Text(
-              'Rp${total.toStringAsFixed(0)}',
+              currencyFormatter.format(total),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ),
@@ -467,14 +585,20 @@ class _TambahItemPageState extends State<TambahItemPage> {
                 );
                 return;
               }
-              final int kuantitas = int.tryParse(kuantitasController.text) ?? 0;
+
+              final int kuantitas =
+                  int.tryParse(kuantitasController.text.replaceAll('.', '')) ??
+                      0;
               if (kuantitas <= 0) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Kuantitas harus lebih dari 0')),
                 );
                 return;
               }
-              final double harga = double.tryParse(hargaController.text) ?? 0;
+
+              final double harga =
+                  double.tryParse(hargaController.text.replaceAll('.', '')) ??
+                      0;
               if (harga <= 0) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Harga harus lebih dari 0')),
@@ -482,8 +606,12 @@ class _TambahItemPageState extends State<TambahItemPage> {
                 return;
               }
 
-              final double diskonRp = double.tryParse(diskonRpController.text) ?? 0;
-              final double diskonPersen = double.tryParse(diskonPersenController.text) ?? 0;
+              final double diskonRp = double.tryParse(
+                      diskonRpController.text.replaceAll('.', '')) ??
+                  0;
+              final double diskonPersen = double.tryParse(
+                      diskonPersenController.text.replaceAll('.', '')) ??
+                  0;
 
               final item = Item(
                 product: selectedProduct!,
@@ -492,9 +620,10 @@ class _TambahItemPageState extends State<TambahItemPage> {
                 discountRp: diskonRp,
                 discountPercent: diskonPersen,
               );
+
               Navigator.pop(context, item);
             },
-            style: ElevatedButton.styleFrom(
+             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.indigo.shade700,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -510,7 +639,6 @@ class _TambahItemPageState extends State<TambahItemPage> {
     );
   }
 }
-
 
 class PilihSupplierPage extends StatefulWidget {
   const PilihSupplierPage({super.key});
@@ -543,7 +671,8 @@ class _PilihSupplierPageState extends State<PilihSupplierPage> {
   }
 
   Future<void> fetchSuppliers() async {
-    const url = 'http://192.168.1.8/nindo/tambahstock.php?action=suppliers_products';
+    const url =
+        'http://192.168.1.10/nindo/tambahstock.php?action=suppliers_products';
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -561,7 +690,8 @@ class _PilihSupplierPageState extends State<PilihSupplierPage> {
         });
       } else {
         setState(() {
-          error = 'Failed to load suppliers. Status code: ${response.statusCode}';
+          error =
+              'Failed to load suppliers. Status code: ${response.statusCode}';
           isLoading = false;
         });
       }
@@ -639,6 +769,7 @@ class _PilihSupplierPageState extends State<PilihSupplierPage> {
     );
   }
 }
+
 class PilihProdukPage extends StatefulWidget {
   const PilihProdukPage({super.key});
 
@@ -670,7 +801,8 @@ class _PilihProdukPageState extends State<PilihProdukPage> {
   }
 
   Future<void> fetchProducts() async {
-    const url = 'http://192.168.1.8/nindo/tambahstock.php?action=suppliers_products';
+    const url =
+        'http://192.168.1.10/nindo/tambahstock.php?action=suppliers_products';
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -688,7 +820,8 @@ class _PilihProdukPageState extends State<PilihProdukPage> {
         });
       } else {
         setState(() {
-          error = 'Failed to load products. Status code: ${response.statusCode}';
+          error =
+              'Failed to load products. Status code: ${response.statusCode}';
           isLoading = false;
         });
       }
@@ -763,6 +896,28 @@ class _PilihProdukPageState extends State<PilihProdukPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class RupiahInputFormatter extends TextInputFormatter {
+  final NumberFormat _formatter = NumberFormat.decimalPattern('id_ID');
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    String cleaned = newValue.text.replaceAll('.', '');
+
+    if (cleaned.isEmpty) return newValue.copyWith(text: '');
+
+    int value = int.tryParse(cleaned) ?? 0;
+    String newText = _formatter.format(value);
+
+    return TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newText.length),
     );
   }
 }

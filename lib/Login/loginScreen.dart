@@ -4,6 +4,7 @@ import 'package:hayami_app/Login/forget.dart';
 import 'package:hayami_app/Login/otp.dart';
 import 'package:hayami_app/SignUp/dashboardSignUp.dart';
 import 'package:hayami_app/api/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -34,12 +35,20 @@ class _LoginPageState extends State<LoginPage> {
 
     // Memanggil login API
     final response = await ApiService.loginUser(username, password);
-    
+
     setState(() => _isLoading = false);
 
-    // Menangani respons sukses dan error
     if (response['status'] == 'success') {
-      // Navigasi ke Dashboard
+      final prefs = await SharedPreferences.getInstance();
+
+      final idUser = response['data']?['id_user'];
+
+      print('ID User dari response: $idUser');
+
+      if (idUser != null) {
+        await prefs.setString('id_user', idUser.toString());
+      }
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const Dashboardscreen()),
