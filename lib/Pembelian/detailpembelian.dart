@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hayami_app/Pembelian/tambahbelumdibayarpembelian.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class DetailPembelian extends StatefulWidget {
   final Map<String, dynamic> invoice;
@@ -34,6 +37,83 @@ class _DetailPembelianState extends State<DetailPembelian> {
     return NumberFormat.currency(
             locale: "id_ID", symbol: "Rp ", decimalDigits: 0)
         .format(value);
+  }
+
+  Future<void> _printPdf() async {
+    final pdf = pw.Document();
+
+    final invoice = widget.invoice;
+    final contactName = invoice['name'] ?? 'Tidak diketahui';
+    final alamat = invoice['alamat'] ?? 'Tidak diketahui';
+    final hp = invoice['hp'] ?? '-';
+    final invoiceNumber = invoice['invoice'] ?? invoice['id'] ?? '-';
+    final date = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    pdf.addPage(
+      pw.MultiPage(
+        build: (pw.Context context) => [
+          pw.Text('Id Transaksi: $invoiceNumber',
+              style:
+                  pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 10),
+          pw.Text('Supplier: $contactName'),
+          pw.Text('HP: $hp'),
+          pw.Text('Alamat: $alamat'),
+          pw.Text('Tanggal: $date'),
+          pw.SizedBox(height: 20),
+          pw.Text('Barang Dibeli:',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.Table.fromTextArray(
+            headers: ['Nama', 'Qty', 'Harga per Item', 'Total'],
+            data: barang.map((item) {
+              final nama = item['nama_produk'] ?? 'Tidak Diketahui';
+              final qty = item['qty'].toString();
+              final harga = formatRupiah(item['price']);
+              final total = formatRupiah(item['total_harga']);
+              return [nama, qty, harga, total];
+            }).toList(),
+          ),
+          pw.SizedBox(height: 20),
+          if ((invoice['disc_nominal'] ?? 0) > 0 ||
+              (invoice['disc_persen'] ?? 0) > 0)
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                if ((invoice['disc_nominal'] ?? 0) > 0)
+                  pw.Text(
+                      'Diskon (Rp): ${formatRupiah(invoice['disc_nominal'])}'),
+                if ((invoice['disc_persen'] ?? 0) > 0)
+                  pw.Text('Diskon (%): ${invoice['disc_persen']}%'),
+                pw.SizedBox(height: 10),
+              ],
+            ),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text('Total Semua:',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text(formatRupiah(totalInvoice),
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            ],
+          ),
+          pw.SizedBox(height: 10),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text('Sisa Tagihan:',
+                  style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
+              pw.Text(formatRupiah(sisaTagihan),
+                  style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
   Color _getStatusColor(String status) {
@@ -71,12 +151,11 @@ class _DetailPembelianState extends State<DetailPembelian> {
 
     return WillPopScope(
       onWillPop: () async {
-        // saat tombol back ditekan → langsung ke TambahTagihan
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const TambahTagihanPage()),
         );
-        return false; // cegah pop default
+        return false;
       },
       child: Scaffold(
         appBar: PreferredSize(
@@ -208,7 +287,6 @@ class _DetailPembelianState extends State<DetailPembelian> {
                       ),
                     ),
 
-                  // Total Semua
                   Container(
                     padding: const EdgeInsets.all(16),
                     width: double.infinity,
@@ -225,37 +303,53 @@ class _DetailPembelianState extends State<DetailPembelian> {
                       ],
                     ),
                   ),
-// Tombol Print
-Container(
-  padding: const EdgeInsets.all(16),
-  width: double.infinity,
-  color: Colors.grey.shade100,
-  child: Row(
-    mainAxisAlignment: MainAxisAlignment.end,
-    children: [
-      ElevatedButton.icon(
-        onPressed: () {
-          // TODO: Tambahkan logika print di sini
-          print("Print ditekan");
-        },
-        icon: const Icon(Icons.print),
-        label: const Text(
-          "Print",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      ),
-    ],
-  ),
-),
-
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    width: double.infinity,
+                    color: Colors.grey.shade100,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text("Sisa Tagihan",
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black)),
+                        Text(formatRupiah(sisaTagihan),
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    width: double.infinity,
+                    color: Colors.grey.shade100,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _printPdf,
+                          icon: const Icon(Icons.print),
+                          label: const Text(
+                            "Print",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
           ],
@@ -340,13 +434,13 @@ Container(
                   Text(date, style: const TextStyle(color: Colors.white)),
                 ],
               ),
-              Row(
-                children: [
-                  const Icon(Icons.access_time, size: 16, color: Colors.white),
-                  const SizedBox(width: 6),
-                  Text(dueDate, style: const TextStyle(color: Colors.white)),
-                ],
-              ),
+              // Row(
+              //   children: [
+              //     const Icon(Icons.access_time, size: 16, color: Colors.white),
+              //     const SizedBox(width: 6),
+              //     Text(dueDate, style: const TextStyle(color: Colors.white)),
+              //   ],
+              // ),
             ],
           ),
         ],

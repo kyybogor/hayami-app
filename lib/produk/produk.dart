@@ -45,10 +45,10 @@ class _ProdukPageState extends State<ProdukPage> {
 
   Future<void> _fetchProduk() async {
     setState(() {
-      _isLoading = true; // mulai loading saat fetch
+      _isLoading = true;
     });
 
-    final url = Uri.parse('http://192.168.1.10/nindo/produk.php');
+    final url = Uri.parse('http://192.168.1.20/nindo/produk.php');
 
     try {
       final response = await http.get(url);

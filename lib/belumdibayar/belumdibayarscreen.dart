@@ -32,7 +32,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
   Future<void> fetchInvoices() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.11/nindo/bank/barang_keluar.php'),
+        Uri.parse('http://192.168.1.3/nindo/barang_keluar.php'),
       );
 
       if (response.statusCode == 200) {

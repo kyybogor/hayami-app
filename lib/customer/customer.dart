@@ -29,7 +29,7 @@ class _CustomerscreenState extends State<Customerscreen> {
   Future<void> fetchCustomers() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.10/nindo/get_supplier.php'),
+        Uri.parse('http://192.168.1.3/nindo/get_supplier.php'),
       );
 
       if (response.statusCode == 200) {
