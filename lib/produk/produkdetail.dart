@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hayami_app/produk/updateproduk.dart';
 import 'package:intl/intl.dart';
-import 'pergerakanstok.dart';
-import 'transaksiterkini.dart';
-import 'transfergudang.dart';
 
 String formatRupiah(dynamic amount) {
   try {
@@ -34,20 +31,11 @@ class ProductDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<Map<String, String>> transaksiTerkini = [
-      {'title': 'Tagihan Penjualan', 'amount': '899.099', 'date': '15/04/2025'},
-      {'title': 'Tagihan Penjualan', 'amount': '998.000', 'date': '15/04/2025'},
-      {'title': 'Tagihan Pembelian', 'amount': '598.000', 'date': '14/04/2025'}
-    ];
-
-    List<Map<String, String>> transferGudang = [
-      {'kode': 'WT/00004', 'tanggal': '09/03/2025'},
-      {'kode': 'WT/00003', 'tanggal': '08/03/2025'},
-      {'kode': 'WT/00002', 'tanggal': '07/03/2025'}
-    ];
-
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
+        backgroundColor: const Color(0xFF1B5E20), // Warna latar hijau tua
+        foregroundColor: Colors.white, // Warna teks, ikon jadi putih
         title: Column(
           children: [
             Text(displayValue(product['nm_product']),
@@ -63,6 +51,8 @@ class ProductDetailPage extends StatelessWidget {
         ),
         actions: [
           PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert), // Ikon menu putih
+            color: Colors.white, // Warna background popup
             onSelected: (value) async {
               if (value == 'ubah') {
                 final result = await Navigator.push<bool>(
@@ -71,7 +61,6 @@ class ProductDetailPage extends StatelessWidget {
                     builder: (_) => EditProductPage(product: product),
                   ),
                 );
-
                 if (result == true) {
                   Navigator.pop(context, true);
                 }
@@ -96,245 +85,97 @@ class ProductDetailPage extends StatelessWidget {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
+            // Gambar produk di tengah
+            Center(
+              child: CircleAvatar(
+                radius: 60,
+                backgroundImage: NetworkImage(
+                    'http://192.168.1.20/nindo/${product['gambar']}'),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Info Produk
+            Center(
+              child: Column(
                 children: [
-                  _buildInfoCard('Stok Tersedia',
-                      displayValue(product['qty']), Colors.pink),
-                  _buildInfoCard('Minimal Stok',
-                      displayValue(product['minim']), Colors.orange),
-                  _buildInfoCard(
-                      'Maksimal Stok', displayValue(product['maxim']), Colors.blue),
+                  Text(
+                    displayValue(product['nm_product']),
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Kategori: ${displayValue(product['nm_kategori'])}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Harga Jual: ${product['price'] == null ? '-' : formatRupiah(product['price'])}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundImage: NetworkImage(
-                      'http://192.168.1.20/nindo/${product['gambar']}'),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        const Icon(Icons.inventory_2),
-                        const SizedBox(width: 8),
-                        Text(displayValue(product['nm_product']))
-                      ]),
-                      const SizedBox(height: 4),
-                      Row(children: [
-                        const Icon(Icons.category),
-                        const SizedBox(width: 8),
-                        Text(
-                            'Kategori: ${displayValue(product['nm_kategori'])}')
-                      ]),
-                      const SizedBox(height: 4),
-                      Row(children: [
-                        const Icon(Icons.sell),
-                        const SizedBox(width: 8),
-                        Text(
-                            'Harga Jual: ${product['price'] == null ? '-' : formatRupiah(product['price'])}')
-                      ]),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            // const SizedBox(height: 24),
-            // _sectionHeader('Gudang'),
-            // const SizedBox(height: 8),
-            // if (product['gudang']?['unassigned'] == null &&
-            //     product['gudang']?['gudang_utama'] == null &&
-            //     product['gudang']?['gudang_elektronik'] == null)
-            //   const Padding(
-            //     padding: EdgeInsets.symmetric(vertical: 8),
-            //     child: Text('Tidak ada data gudang.'),
-            //   )
-            // else ...[
-            //   if (product['gudang']?['unassigned'] != null)
-            //     _buildWarehouseRow('Unassigned',
-            //         displayValue(product['gudang']['unassigned'])),
-            //   if (product['gudang']?['gudang_utama'] != null)
-            //     _buildWarehouseRow('Gudang Utama',
-            //         displayValue(product['gudang']['gudang_utama'])),
-            //   if (product['gudang']?['gudang_elektronik'] != null)
-            //     _buildWarehouseRow('Gudang Elektronik',
-            //         displayValue(product['gudang']['gudang_elektronik'])),
-            //   const Divider(),
-            //   _buildWarehouseRow('Total', displayValue(product['total_gudang']),
-            //       isBold: true),
-            // ],
-            // const SizedBox(height: 24),
-            // _sectionHeaderWithAction(
-            //     context, 'Transaksi Terkini', 'Lihat Semua',
-            //     actionColor: Colors.blue),
-            // const SizedBox(height: 8),
-            // ...transaksiTerkini.map((trx) {
-            //   return _buildTransactionRow(
-            //     displayValue(trx['title']),
-            //     displayValue(trx['amount']),
-            //     displayValue(trx['date']),
-            //   );
-            // }).toList(),
-            // const SizedBox(height: 24),
-            // _sectionHeaderWithAction(context, 'Pergerakan Stok', 'Lihat Semua',
-            //     actionColor: Colors.blue),
-            // const SizedBox(height: 8),
-            // _buildStockMovement('Tagihan Penjualan', '-2', Colors.red),
-            // _buildStockMovement('Tagihan Pembelian', '+2', Colors.green),
-            // _buildStockMovement('Tagihan Penjualan', '-3', Colors.red),
-            // const SizedBox(height: 24),
-            // _sectionHeaderWithAction(context, 'Transfer Gudang', 'Lihat Semua',
-            //     actionColor: Colors.blue),
-            // const SizedBox(height: 8),
-            // ...transferGudang.map((transfer) {
-            //   return ListTile(   
-            //     title: Text(displayValue(transfer['kode'])),
-            //     subtitle: Text(displayValue(transfer['tanggal'])),
-            //     trailing: const Icon(Icons.chevron_right),
-            //     onTap: () {},
-            //   );
-            // }).toList(),
-            // const SizedBox(height: 80),
+
+            const SizedBox(height: 24),
+
+            // Info Card 1 Baris Per Card
+            _buildInfoCard(Icons.inventory_2, 'Stok Tersedia',
+                displayValue(product['qty']), Colors.green),
+            const SizedBox(height: 12),
+            _buildInfoCard(Icons.warning_amber, 'Minimal Stok',
+                displayValue(product['minim']), Colors.orange),
+            const SizedBox(height: 12),
+            _buildInfoCard(Icons.trending_up, 'Maksimal Stok',
+                displayValue(product['maxim']), Colors.blue),
+
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoCard(String title, String value, Color color) {
-    return Container(
-      width: 200,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
+  Widget _buildInfoCard(
+      IconData icon, String title, String value, Color color) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: color.withOpacity(0.1),
+              child: Icon(icon, color: color),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: color),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWarehouseRow(String name, String qty, {bool isBold = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(name,
-              style:
-                  isBold ? const TextStyle(fontWeight: FontWeight.bold) : null),
-          Text(qty,
-              style:
-                  isBold ? const TextStyle(fontWeight: FontWeight.bold) : null),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionRow(String title, String amount, String date) {
-    return ListTile(
-      title: Text(title),
-      subtitle: Text(date),
-      trailing:
-          Text(amount, style: const TextStyle(fontWeight: FontWeight.bold)),
-    );
-  }
-
-  Widget _buildStockMovement(String title, String qty, Color color) {
-    return ListTile(
-      title: Text(title),
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(qty, style: TextStyle(color: color)),
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String title) {
-    return Container(
-      width: double.infinity,
-      color: Colors.grey.shade200,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      child: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-      ),
-    );
-  }
-
-  Widget _sectionHeaderWithAction(
-      BuildContext context, String title, String actionText,
-      {Color actionColor = Colors.black}) {
-    return Container(
-      width: double.infinity,
-      color: Colors.grey.shade200,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          InkWell(
-            onTap: () {
-              if (title == 'Transaksi Terkini') {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) =>
-                            TransaksiTerkiniPage(product: product)));
-              } else if (title == 'Pergerakan Stok') {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => PergerakanstokPage(product: product)));
-              } else if (title == 'Transfer Gudang') {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => TransferGudangPage(product: product)));
-              }
-            },
-            child: Text(
-              actionText,
-              style: TextStyle(
-                color: actionColor,
-                fontWeight: FontWeight.w500,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    title,
+                    style: TextStyle(fontSize: 13, color: color),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
