@@ -156,154 +156,187 @@ class _DetailBelumDibayarPembelianState
         onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  Future<void> _updatePO(int nominal, String keterangan) async {
-    final idPo1 = widget.invoice['id_po1'] ?? widget.invoice['id'];
+Future<void> _updatePO(int nominal, String keterangan) async {
+  final idPo1 = widget.invoice['id_po1'] ?? widget.invoice['id'];
+  final prefs = await SharedPreferences.getInstance();
+  final idUser = prefs.getString('id_user') ?? '';
 
-    final currentSudahBayar = (widget.invoice['sudah_bayar'] ?? 0) as int;
-    final currentHutang = (widget.invoice['hutang'] ?? sisaTagihan) as int;
 
-    final newSudahBayar = currentSudahBayar + nominal;
-    final newHutang = currentHutang - nominal;
+  final url = Uri.parse("http://192.168.1.20/nindo/tambahstock.php?action=update_po");
 
-    final url =
-        Uri.parse("http://192.168.1.20/nindo/tambahstock.php?action=update_po");
+  try {
+final response = await http.post(
+  url,
+  headers: {"Content-Type": "application/json"},
+  body: jsonEncode({
+    "id_po": idPo1,
+    "nominal": nominal,
+    "ket": keterangan,
+    "id_user": idUser,
+  }),
+);
 
-    try {
-      final response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "id_po": idPo1,
-          "hutang": newHutang,
-          "sudah_bayar": newSudahBayar,
-          "ket": keterangan,
-        }),
+print('Response status: ${response.statusCode}');
+print('Response body: ${response.body}');
+
+final data = jsonDecode(response.body);
+
+
+    if (response.statusCode == 200 && data['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pembayaran berhasil disimpan.'),
+          duration: Duration(milliseconds: 300),
+        ),
       );
 
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200 && data['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pembayaran berhasil disimpan.'),
-            duration: Duration(milliseconds: 300),
-          ),
-        );
-
-        setState(() {
-          widget.invoice['sudah_bayar'] = newSudahBayar;
-          widget.invoice['hutang'] = newHutang;
-          sisaTagihan = newHutang;
-        });
-
-        await fetchDetail();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['error'] ?? 'Gagal memperbarui PO')),
-        );
-      }
-    } catch (e) {
-      print("Error update_po: $e");
+      await fetchDetail(); // untuk refresh data
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Terjadi kesalahan jaringan.')),
+        SnackBar(content: Text(data['error'] ?? 'Gagal memperbarui PO')),
       );
     }
-  }
-
-  void _showBayarDialog() {
-    final TextEditingController nominalController = TextEditingController();
-    final TextEditingController keteranganController = TextEditingController();
-    final formatter = NumberFormat("#,###", "id_ID");
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Pembayaran'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nominalController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Nominal Pembayaran',
-                  hintText: 'Masukkan nominal',
-                ),
-                onChanged: (value) {
-                  String newValue = value.replaceAll('.', '');
-                  int number = int.tryParse(newValue) ?? 0;
-
-                  if (number > sisaTagihan) {
-                    number = sisaTagihan;
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content:
-                            Text('Nominal tidak boleh lebih dari sisa tagihan'),
-                        duration: Duration(seconds: 1),
-                      ),
-                    );
-                  }
-
-                  nominalController.value = TextEditingValue(
-                    text: formatter.format(number),
-                    selection: TextSelection.collapsed(
-                        offset: formatter.format(number).length),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                enabled: false,
-                decoration: InputDecoration(
-                  labelText: 'Sisa Tagihan',
-                  filled: true,
-                  fillColor: Colors.grey.shade200,
-                ),
-                controller:
-                    TextEditingController(text: formatter.format(sisaTagihan)),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: keteranganController,
-                decoration: const InputDecoration(
-                  labelText: 'Keterangan',
-                  hintText: 'Contoh: Pembayaran sebagian',
-                ),
-                maxLines: 2,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                String nominalStr = nominalController.text.replaceAll('.', '');
-                int nominal = int.tryParse(nominalStr) ?? 0;
-
-                if (nominal <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Nominal harus lebih dari 0')),
-                  );
-                  return;
-                }
-
-                String keterangan = keteranganController.text;
-
-                Navigator.of(context).pop();
-                _updatePO(nominal, keterangan);
-              },
-              child: const Text('Bayar'),
-            ),
-          ],
-        );
-      },
+  } catch (e) {
+    print("Error update_po: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Terjadi kesalahan jaringan.')),
     );
   }
+}
+
+void _showBayarDialog() {
+  final TextEditingController nominalController = TextEditingController();
+  final TextEditingController keteranganController = TextEditingController();
+  final formatter = NumberFormat("#,###", "id_ID");
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          'Pembayaran',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: Colors.indigo,
+          ),
+        ),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ✅ Sisa Tagihan tampil cantik
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    "Sisa Tagihan: Rp ${formatter.format(sisaTagihan)}",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+
+                // ✅ Nominal Pembayaran
+                TextField(
+                  controller: nominalController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Nominal Pembayaran',
+                    hintText: 'Masukkan nominal',
+                    prefixText: 'Rp ',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (value) {
+                    String newValue = value.replaceAll('.', '');
+                    int number = int.tryParse(newValue) ?? 0;
+
+                    if (number > sisaTagihan) {
+                      number = sisaTagihan;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content:
+                              Text('Nominal tidak boleh lebih dari sisa tagihan'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    }
+
+                    String formatted = formatter.format(number);
+                    nominalController.value = TextEditingValue(
+                      text: formatted,
+                      selection: TextSelection.collapsed(offset: formatted.length),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // ✅ Keterangan
+                TextField(
+                  controller: keteranganController,
+                  decoration: const InputDecoration(
+                    labelText: 'Keterangan',
+                    hintText: 'Contoh: Pembayaran sebagian',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.check_circle, color: Colors.white),
+            label: const Text(
+              'Bayar',
+              style: TextStyle(color: Colors.white),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.indigo,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            onPressed: () {
+              String nominalStr = nominalController.text.replaceAll('.', '');
+              int nominal = int.tryParse(nominalStr) ?? 0;
+
+              if (nominal <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Nominal harus lebih dari 0')),
+                );
+                return;
+              }
+
+              String keterangan = keteranganController.text;
+
+              Navigator.of(context).pop();
+              _updatePO(nominal, keterangan);
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
 
   String formatRupiah(dynamic number) {
     final double value = number is String
