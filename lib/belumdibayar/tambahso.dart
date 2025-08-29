@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hayami_app/belumdibayar/belumdibayarscreen.dart';
 import 'package:hayami_app/belumdibayar/detailpenjualan.dart';
 import 'package:hayami_app/pajak/pajakpenjualan.dart';
 import 'package:intl/intl.dart';
@@ -37,7 +38,7 @@ List<dynamic> customers = [];
 List<dynamic> filteredCustomers = [];
 List<dynamic> banks = [];
 List<dynamic> salesList = [];
-
+int maxQty = 0;
 String? selectedCustomer;
 String? selectedBank;
 String? selectedSales;
@@ -139,7 +140,9 @@ Future<void> saveCustomerData() async {
       "disc_persen": discPercentController.text,
       "ppn_persen": ppnPercentController.text,
       "net_total": _hitungNetTotal().toStringAsFixed(0),
-      "hutang": _hitungNetTotal().toStringAsFixed(0),
+      "hutang": (tempoController.text.trim() == "0" || tempoController.text.trim().toLowerCase() == "cash")
+    ? "0"
+    : _hitungNetTotal().toStringAsFixed(0),
       "dibuat_oleh": idUser,
       "dibuat_tgl": dibuatTgl,
       "status": "1",
@@ -170,7 +173,7 @@ Future<void> saveCustomerData() async {
     }).toList();
 
     final body = jsonEncode({"so1": so1, "so2": so2});
-    final url = Uri.parse("http://192.168.1.20/nindo/input_so_mobile.php");
+    final url = Uri.parse("http://192.168.1.3/nindo/input_so_mobile.php");
     final response = await http.post(url,
         headers: {"Content-Type": "application/json"},
         body: body);
@@ -278,16 +281,20 @@ void resetForm() {
   }
 
   // Fungsi untuk memilih produk dari daftar yang terfilter
-  void selectProduct(String productName) {
+  void selectProduct(String productName, int stock) {
   final selected = products.firstWhere((p) => p['nm_product'] == productName);
   setState(() {
     selectedProduct = productName;
-    selectedProductId = selected['id_product'].toString(); // <-- simpan id
+    selectedProductId = selected['id_product'].toString();
     price = double.tryParse(selected['price']) ?? 0;
     filteredProducts = [];
-    productController.text = selectedProduct!;
+
+    // tampilkan di input: Nama Produk - qty: stok
+    productController.text = "$selectedProduct - qty: $stock";
+    maxQty = stock; // simpan stok max untuk validasi qty
   });
 }
+
 
   // Fungsi untuk menghapus produk yang dipilih (jika backspace ditekan)
   void deselectProduct() {
@@ -388,14 +395,18 @@ Widget productInputSection() {
       ),
 
       if (filteredProducts.isNotEmpty && selectedProduct == null) 
-        Column(
-          children: filteredProducts.map((product) {
-            return ListTile(
-              title: Text(product['nm_product']),
-              onTap: () => selectProduct(product['nm_product']),
-            );
-          }).toList(),
-        ),
+  Column(
+    children: filteredProducts.map((product) {
+      final productName = product['nm_product'];
+      final stock = int.tryParse(product['qty'].toString()) ?? 0; // ambil qty stok
+
+      return ListTile(
+        title: Text("$productName - qty: $stock"), // tampilkan nama + stok
+        onTap: () => selectProduct(productName, stock), // lempar stok ke fungsi selectProduct
+      );
+    }).toList(),
+  ),
+
       
       SizedBox(height: 10),
       Row(children: [
@@ -404,9 +415,20 @@ Widget productInputSection() {
             controller: qtyController,
             decoration: inputDecoration(label: "Qty", icon: Icons.numbers),
             keyboardType: TextInputType.number,
-            onChanged: (val) => setState(() {
-              quantity = int.tryParse(val) ?? 0;
-            }),
+            onChanged: (val) {
+  int inputQty = int.tryParse(val) ?? 0;
+  if (inputQty > maxQty) {
+    inputQty = maxQty; // batasi ke stok max
+    qtyController.text = inputQty.toString(); // update textfield
+    qtyController.selection = TextSelection.fromPosition(
+      TextPosition(offset: qtyController.text.length),
+    );
+  }
+  setState(() {
+    quantity = inputQty;
+  });
+},
+
           ),
         ),
         SizedBox(width: 5),
@@ -510,8 +532,7 @@ Widget calculationTable() {
 
   double discPercent = double.tryParse(discPercentController.text) ?? 0;
   double discRp = total * (discPercent / 100);
-  discRpController.text = discRp.toStringAsFixed(0);
-
+  discRpController.text = rupiahFormat.format(discRp); 
   double ppnPercent = double.tryParse(ppnPercentController.text) ?? 0;
   double ppnRp = (total - discRp) * (ppnPercent / 100);
 
@@ -770,8 +791,9 @@ Autocomplete<Map<String, dynamic>>(
       TextFormField(
   controller: discRpController,
   readOnly: true,
-  decoration: inputDecoration(label: "Disc (Rp)", icon: Icons.money_off),
+  decoration: inputDecoration(label: "Disc (Rp)", icon: Icons.money_off) // opsional biar lebih tegas
 ),
+
       SizedBox(height: 10),
 
       // Tempo
@@ -796,14 +818,23 @@ Autocomplete<Map<String, dynamic>>(
 Widget build(BuildContext context) {
   return Scaffold(
     appBar: AppBar(
-      centerTitle: true,
-      title: Text(
-        "Sales Order",
-        style: TextStyle(color: Colors.white),
-      ),
-      backgroundColor: Color(0xFF2E3A87),
-      iconTheme: IconThemeData(color: Colors.white),
-    ),
+  centerTitle: true,
+  title: Text(
+    "Sales Order",
+    style: TextStyle(color: Colors.white),
+  ),
+  backgroundColor: Color(0xFF2E3A87),
+  iconTheme: IconThemeData(color: Colors.white),
+  leading: IconButton(
+    icon: Icon(Icons.arrow_back),
+    onPressed: () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => BelumDibayar()),
+      );
+    },
+  ),
+),
     body: Padding(
       padding: const EdgeInsets.all(16.0),
       child: ListView(

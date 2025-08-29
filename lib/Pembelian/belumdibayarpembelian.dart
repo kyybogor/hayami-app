@@ -249,46 +249,90 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
               ),
             ),
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
-              child: Row(
-                children: [
-                  Flexible(
-                    child: TextField(
-                      controller: _startDateController,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.date_range),
-                        labelText: 'Tanggal Mulai',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        filled: true,
-                        fillColor: Colors.blue.shade50,
-                      ),
-                      onTap: () => _selectDate(context, true),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Flexible(
-                    child: TextField(
-                      controller: _endDateController,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.date_range),
-                        labelText: 'Tanggal Selesai',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        filled: true,
-                        fillColor: Colors.blue.shade50,
-                      ),
-                      onTap: () => _selectDate(context, false),
-                    ),
-                  ),
-                ],
-              ),
+  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+  child: Row(
+    children: [
+      Expanded(
+        child: InkWell(
+          onTap: () => _selectDate(context, true),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.blue.shade200),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_today, color: Colors.blue, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    startDate == null
+                        ? "Pilih Tanggal Awal"
+                        : DateFormat('dd-MM-yyyy').format(startDate!),
+                    style: TextStyle(
+                      color: startDate == null ? Colors.grey : Colors.blue.shade800,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: InkWell(
+          onTap: () => _selectDate(context, false),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.blue.shade200),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.event, color: Colors.blue, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    endDate == null
+                        ? "Pilih Tanggal Akhir"
+                        : DateFormat('dd-MM-yyyy').format(endDate!),
+                    style: TextStyle(
+                      color: endDate == null ? Colors.grey : Colors.blue.shade800,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ],
+  ),
+),
+
             const SizedBox(height: 8),
             Expanded(
               child: isLoading
