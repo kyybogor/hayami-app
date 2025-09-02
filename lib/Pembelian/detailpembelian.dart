@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:hayami_app/Pembelian/belumdibayarpembelian.dart';
 import 'package:hayami_app/Pembelian/tambahbelumdibayarpembelian.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -44,24 +46,51 @@ class _DetailPembelianState extends State<DetailPembelian> {
 
     final invoice = widget.invoice;
     final contactName = invoice['name'] ?? 'Tidak diketahui';
-    final alamat = invoice['alamat'] ?? 'Tidak diketahui';
+    final alamat = invoice['alamat'] ?? '-';
     final hp = invoice['hp'] ?? '-';
     final invoiceNumber = invoice['invoice'] ?? invoice['id'] ?? '-';
     final date = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final imageLogo = pw.MemoryImage(
+      (await rootBundle.load('assets/image/logo.png')).buffer.asUint8List(),
+    );
+    final subtotal = barang.fold<int>(0, (sum, item) {
+      return sum + (int.tryParse(item['total_harga'].toString()) ?? 0);
+    });
 
     pdf.addPage(
       pw.MultiPage(
         build: (pw.Context context) => [
-          pw.Text('Id Transaksi: $invoiceNumber',
-              style:
-                  pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.Center(
+            child: pw.Column(
+              children: [
+                pw.Text(
+                  'PT. Mitra Mika Cipta',
+                  style: pw.TextStyle(
+                      fontSize: 20, fontWeight: pw.FontWeight.bold),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Image(imageLogo,
+                    height: 80), // Ganti tinggi sesuai kebutuhan
+                pw.SizedBox(height: 8),
+                pw.Text(
+                    'Jalan Tanjung Pura 2 No 98B RT 07/ RW 04, Pegadungan\nJakarta Barat , DKI Jakarta, Kode Pos 11830',
+                    textAlign: pw.TextAlign.center),
+                pw.Text('0856 721 3169'),
+                pw.Text('ptmitramikacipta@yahoo.com'),
+                pw.Text('www.mitramika.com'),
+              ],
+            ),
+          ),
           pw.SizedBox(height: 10),
-          pw.Text('Supplier: $contactName'),
-          pw.Text('HP: $hp'),
-          pw.Text('Alamat: $alamat'),
           pw.Text('Tanggal: $date'),
-          pw.SizedBox(height: 20),
-          pw.Text('Barang Dibeli:',
+          pw.Text('Kepada Yth',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 1),
+          pw.Text('$contactName'),
+          pw.Text('$hp'),
+          pw.Text('$alamat'),
+          pw.SizedBox(height: 10),
+          pw.Text('No. Faktur: $invoiceNumber',
               style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
           pw.Table.fromTextArray(
             headers: ['Nama', 'Qty', 'Harga per Item', 'Total'],
@@ -74,6 +103,16 @@ class _DetailPembelianState extends State<DetailPembelian> {
             }).toList(),
           ),
           pw.SizedBox(height: 20),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text('Subtotal:',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text(formatRupiah(subtotal),
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            ],
+          ),
+          pw.SizedBox(height: 5),
           if ((invoice['disc_nominal'] ?? 0) > 0 ||
               (invoice['disc_persen'] ?? 0) > 0)
             pw.Column(
@@ -94,18 +133,6 @@ class _DetailPembelianState extends State<DetailPembelian> {
                   style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
               pw.Text(formatRupiah(totalInvoice),
                   style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-            ],
-          ),
-          pw.SizedBox(height: 10),
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            children: [
-              pw.Text('Sisa Tagihan:',
-                  style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
-              pw.Text(formatRupiah(sisaTagihan),
-                  style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
             ],
           ),
         ],
@@ -153,7 +180,8 @@ class _DetailPembelianState extends State<DetailPembelian> {
       onWillPop: () async {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const TambahTagihanPage()),
+          MaterialPageRoute(
+              builder: (context) => const BelumDibayarPembelian()),
         );
         return false;
       },
@@ -163,7 +191,7 @@ class _DetailPembelianState extends State<DetailPembelian> {
           child: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+                colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -286,7 +314,6 @@ class _DetailPembelianState extends State<DetailPembelian> {
                         ],
                       ),
                     ),
-
                   Container(
                     padding: const EdgeInsets.all(16),
                     width: double.infinity,
@@ -372,7 +399,7 @@ class _DetailPembelianState extends State<DetailPembelian> {
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+          colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

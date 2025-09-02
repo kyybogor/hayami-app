@@ -184,7 +184,7 @@ Future<void> saveCustomerData() async {
       if (response.statusCode == 200) {
         final result = jsonDecode(response.body);
         if (result['success'] == true && result['invoice'] != null) {
-          Navigator.push(
+          Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (context) => DetailPenjualan(invoice: result['invoice']),

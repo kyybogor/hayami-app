@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
@@ -51,8 +52,16 @@ class _DetailBelumDibayarPembelianState
             barang = data['produk'] ?? [];
             totalInvoice = (data['total'] as num?)?.toInt() ?? 0;
             sisaTagihan = (data['sisa_hutang'] as num?)?.toInt() ?? 0;
+
+            // Ambil diskon dan masukkan ke widget.invoice
             widget.invoice['disc_nominal'] = data['disc_nominal'];
             widget.invoice['disc_persen'] = data['disc_persen'];
+
+            if (data['supplier'] != null) {
+              widget.invoice['name'] = data['supplier']['nama'];
+              widget.invoice['alamat'] = data['supplier']['alamat'];
+              widget.invoice['hp'] = data['supplier']['hp'];
+            }
           });
         }
       } else {
@@ -88,20 +97,50 @@ class _DetailBelumDibayarPembelianState
     final hp = invoice['hp'] ?? '-';
     final invoiceNumber = invoice['invoice'] ?? invoice['id'] ?? '-';
     final date = invoice['date'] ?? '-';
+    final imageLogo = pw.MemoryImage(
+      (await rootBundle.load('assets/image/logo.png')).buffer.asUint8List(),
+    );
+    final subtotal = barang.fold<double>(0.0, (sum, item) {
+      return sum +
+          (item['total_harga'] is num
+              ? (item['total_harga'] as num).toDouble()
+              : 0.0);
+    });
 
     pdf.addPage(
       pw.MultiPage(
         build: (pw.Context context) => [
-          pw.Text('Id Transaksi: $invoiceNumber',
-              style:
-                  pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.Center(
+            child: pw.Column(
+              children: [
+                pw.Text(
+                  'PT. Mitra Mika Cipta',
+                  style: pw.TextStyle(
+                      fontSize: 20, fontWeight: pw.FontWeight.bold),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Image(imageLogo,
+                    height: 80), // Ganti tinggi sesuai kebutuhan
+                pw.SizedBox(height: 8),
+                pw.Text(
+                    'Jalan Tanjung Pura 2 No 98B RT 07/ RW 04, Pegadungan\nJakarta Barat , DKI Jakarta, Kode Pos 11830',
+                    textAlign: pw.TextAlign.center),
+                pw.Text('0856 721 3169'),
+                pw.Text('ptmitramikacipta@yahoo.com'),
+                pw.Text('www.mitramika.com'),
+              ],
+            ),
+          ),
           pw.SizedBox(height: 10),
-          pw.Text('Supplier: $contactName'),
-          pw.Text('HP: $hp'),
-          pw.Text('Alamat: $alamat'),
           pw.Text('Tanggal: $date'),
-          pw.SizedBox(height: 20),
-          pw.Text('Barang Dibeli:',
+          pw.Text('Kepada Yth',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 1),
+          pw.Text('$contactName'),
+          pw.Text('$hp'),
+          pw.Text('$alamat'),
+          pw.SizedBox(height: 10),
+          pw.Text('No. Faktur: $invoiceNumber',
               style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
           pw.Table.fromTextArray(
             headers: ['Nama', 'Qty', 'Harga per Item', 'Total'],
@@ -114,6 +153,16 @@ class _DetailBelumDibayarPembelianState
             }).toList(),
           ),
           pw.SizedBox(height: 20),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text('Subtotal:',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text(formatRupiah(subtotal),
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            ],
+          ),
+          pw.SizedBox(height: 5),
           if ((invoice['disc_nominal'] ?? 0) > 0 ||
               (invoice['disc_persen'] ?? 0) > 0)
             pw.Column(
@@ -137,17 +186,17 @@ class _DetailBelumDibayarPembelianState
             ],
           ),
           pw.SizedBox(height: 10),
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            children: [
-              pw.Text('Sisa Tagihan:',
-                  style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
-              pw.Text(formatRupiah(sisaTagihan),
-                  style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
-            ],
-          ),
+          // pw.Row(
+          //   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          //   children: [
+          //     pw.Text('Sisa Tagihan:',
+          //         style: pw.TextStyle(
+          //             fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
+          //     pw.Text(formatRupiah(sisaTagihan),
+          //         style: pw.TextStyle(
+          //             fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
+          //   ],
+          // ),
         ],
       ),
     );
@@ -156,187 +205,188 @@ class _DetailBelumDibayarPembelianState
         onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-Future<void> _updatePO(int nominal, String keterangan) async {
-  final idPo1 = widget.invoice['id_po1'] ?? widget.invoice['id'];
-  final prefs = await SharedPreferences.getInstance();
-  final idUser = prefs.getString('id_user') ?? '';
+  Future<void> _updatePO(int nominal, String keterangan) async {
+    final idPo1 = widget.invoice['id_po1'] ?? widget.invoice['id'];
+    final prefs = await SharedPreferences.getInstance();
+    final idUser = prefs.getString('id_user') ?? '';
 
+    final url =
+        Uri.parse("http://192.168.1.20/nindo/tambahstock.php?action=update_po");
 
-  final url = Uri.parse("http://192.168.1.20/nindo/tambahstock.php?action=update_po");
-
-  try {
-final response = await http.post(
-  url,
-  headers: {"Content-Type": "application/json"},
-  body: jsonEncode({
-    "id_po": idPo1,
-    "nominal": nominal,
-    "ket": keterangan,
-    "id_user": idUser,
-  }),
-);
-
-print('Response status: ${response.statusCode}');
-print('Response body: ${response.body}');
-
-final data = jsonDecode(response.body);
-
-
-    if (response.statusCode == 200 && data['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pembayaran berhasil disimpan.'),
-          duration: Duration(milliseconds: 300),
-        ),
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "id_po": idPo1,
+          "nominal": nominal,
+          "ket": keterangan,
+          "id_user": idUser,
+        }),
       );
 
-      await fetchDetail(); // untuk refresh data
-    } else {
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pembayaran berhasil disimpan.'),
+            duration: Duration(milliseconds: 300),
+          ),
+        );
+
+        await fetchDetail(); // untuk refresh data
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['error'] ?? 'Gagal memperbarui PO')),
+        );
+      }
+    } catch (e) {
+      print("Error update_po: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(data['error'] ?? 'Gagal memperbarui PO')),
+        const SnackBar(content: Text('Terjadi kesalahan jaringan.')),
       );
     }
-  } catch (e) {
-    print("Error update_po: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Terjadi kesalahan jaringan.')),
-    );
   }
-}
 
-void _showBayarDialog() {
-  final TextEditingController nominalController = TextEditingController();
-  final TextEditingController keteranganController = TextEditingController();
-  final formatter = NumberFormat("#,###", "id_ID");
+  void _showBayarDialog() {
+    final TextEditingController nominalController = TextEditingController();
+    final TextEditingController keteranganController = TextEditingController();
+    final formatter = NumberFormat("#,###", "id_ID");
 
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: const Text(
-          'Pembayaran',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-            color: Color(0xFF2E7D32),
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-        ),
-        content: StatefulBuilder(
-          builder: (context, setState) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ✅ Sisa Tagihan tampil cantik
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    "Sisa Tagihan: Rp ${formatter.format(sisaTagihan)}",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                      fontSize: 16,
+          title: const Text(
+            'Pembayaran',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              color: Color(0xFF2E7D32),
+            ),
+          ),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ✅ Sisa Tagihan tampil cantik
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      "Sisa Tagihan: Rp ${formatter.format(sisaTagihan)}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
-                ),
 
-                // ✅ Nominal Pembayaran
-                TextField(
-                  controller: nominalController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Nominal Pembayaran',
-                    hintText: 'Masukkan nominal',
-                    prefixText: 'Rp ',
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (value) {
-                    String newValue = value.replaceAll('.', '');
-                    int number = int.tryParse(newValue) ?? 0;
+                  // ✅ Nominal Pembayaran
+                  TextField(
+                    controller: nominalController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Nominal Pembayaran',
+                      hintText: 'Masukkan nominal',
+                      prefixText: 'Rp ',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      String newValue = value.replaceAll('.', '');
+                      int number = int.tryParse(newValue) ?? 0;
 
-                    if (number > sisaTagihan) {
-                      number = sisaTagihan;
+                      if (number > sisaTagihan) {
+                        number = sisaTagihan;
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content:
-                              Text('Nominal tidak boleh lebih dari sisa tagihan'),
-                          duration: Duration(seconds: 1),
-                        ),
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Nominal tidak boleh lebih dari sisa tagihan'),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      }
+
+                      String formatted = formatter.format(number);
+                      nominalController.value = TextEditingValue(
+                        text: formatted,
+                        selection:
+                            TextSelection.collapsed(offset: formatted.length),
                       );
-                    }
-
-                    String formatted = formatter.format(number);
-                    nominalController.value = TextEditingValue(
-                      text: formatted,
-                      selection: TextSelection.collapsed(offset: formatted.length),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // ✅ Keterangan
-                TextField(
-                  controller: keteranganController,
-                  decoration: const InputDecoration(
-                    labelText: 'Keterangan',
-                    hintText: 'Contoh: Pembayaran sebagian',
-                    border: OutlineInputBorder(),
+                    },
                   ),
-                  maxLines: 2,
-                ),
-              ],
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.check_circle, color: Colors.white),
-            label: const Text(
-              'Bayar',
-              style: TextStyle(color: Colors.white),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green.shade800,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-            onPressed: () {
-              String nominalStr = nominalController.text.replaceAll('.', '');
-              int nominal = int.tryParse(nominalStr) ?? 0;
+                  const SizedBox(height: 16),
 
-              if (nominal <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Nominal harus lebih dari 0')),
-                );
-                return;
-              }
-
-              String keterangan = keteranganController.text;
-
-              Navigator.of(context).pop();
-              _updatePO(nominal, keterangan);
+                  // ✅ Keterangan
+                  TextField(
+                    controller: keteranganController,
+                    decoration: const InputDecoration(
+                      labelText: 'Keterangan',
+                      hintText: 'Contoh: Pembayaran sebagian',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 2,
+                  ),
+                ],
+              );
             },
           ),
-        ],
-      );
-    },
-  );
-}
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.check_circle, color: Colors.white),
+              label: const Text(
+                'Bayar',
+                style: TextStyle(color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade800,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              onPressed: () {
+                String nominalStr = nominalController.text.replaceAll('.', '');
+                int nominal = int.tryParse(nominalStr) ?? 0;
+
+                if (nominal <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Nominal harus lebih dari 0')),
+                  );
+                  return;
+                }
+
+                String keterangan = keteranganController.text;
+
+                Navigator.of(context).pop();
+                _updatePO(nominal, keterangan);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   String formatRupiah(dynamic number) {
     final double value = number is String
@@ -479,148 +529,162 @@ void _showBayarDialog() {
                           ),
                   ),
                   if (barang.isNotEmpty)
-                    Column(
-                      children: [
-                        if ((widget.invoice['disc_nominal'] ?? 0) > 0 ||
-                            (widget.invoice['disc_persen'] ?? 0) > 0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 8, horizontal: 16),
-                            width: double.infinity,
-                            color: Colors.grey.shade100,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                if ((widget.invoice['disc_nominal'] ?? 0) > 0)
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 24),
-                                    child: RichText(
+                    Theme(
+                      data: Theme.of(context)
+                          .copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        title: const Text(
+                          "Rincian Tagihan",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        leading:
+                            const Icon(Icons.receipt_long, color: Colors.green),
+                        children: [
+                          if ((widget.invoice['disc_nominal'] ?? 0) > 0 ||
+                              (widget.invoice['disc_persen'] ?? 0) > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 8, horizontal: 16),
+                              width: double.infinity,
+                              color: Colors.grey.shade100,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  if ((widget.invoice['disc_nominal'] ?? 0) > 0)
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 24),
+                                      child: RichText(
+                                        text: TextSpan(
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black87),
+                                          children: [
+                                            const TextSpan(
+                                                text: 'Diskon (Rp): '),
+                                            TextSpan(
+                                              text: formatRupiah(widget.invoice[
+                                                      'disc_nominal'] ??
+                                                  0),
+                                              style: const TextStyle(
+                                                  color: Colors.green),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  if ((widget.invoice['disc_persen'] ?? 0) > 0)
+                                    RichText(
                                       text: TextSpan(
                                         style: const TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
                                             color: Colors.black87),
                                         children: [
-                                          const TextSpan(text: 'Diskon (Rp): '),
+                                          const TextSpan(text: 'Diskon (%): '),
                                           TextSpan(
-                                            text: formatRupiah(widget
-                                                    .invoice['disc_nominal'] ??
-                                                0),
+                                            text:
+                                                "${widget.invoice['disc_persen']}%",
                                             style: const TextStyle(
                                                 color: Colors.green),
                                           ),
                                         ],
                                       ),
                                     ),
-                                  ),
-                                if ((widget.invoice['disc_persen'] ?? 0) > 0)
-                                  RichText(
-                                    text: TextSpan(
-                                      style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87),
-                                      children: [
-                                        const TextSpan(text: 'Diskon (%): '),
-                                        TextSpan(
-                                          text:
-                                              "${widget.invoice['disc_persen']}%",
-                                          style: const TextStyle(
-                                              color: Colors.green),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                ],
+                              ),
+                            ),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            width: double.infinity,
+                            color: Colors.grey.shade200,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text("Total Semua",
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold)),
+                                Text(formatRupiah(totalInvoice),
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          width: double.infinity,
-                          color: Colors.grey.shade200,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text("Total Semua",
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold)),
-                              Text(formatRupiah(totalInvoice),
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold)),
-                            ],
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            width: double.infinity,
+                            color: Colors.grey.shade100,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text("Sisa Tagihan",
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black)),
+                                Text(formatRupiah(sisaTagihan),
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red)),
+                              ],
+                            ),
                           ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          width: double.infinity,
-                          color: Colors.grey.shade100,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text("Sisa Tagihan",
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black)),
-                              Text(formatRupiah(sisaTagihan),
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.red)),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          width: double.infinity,
-                          color: Colors.grey.shade100,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              if (idUser == "sa") ...[
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            width: double.infinity,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                if (idUser == "sa") ...[
+                                  ElevatedButton.icon(
+                                    onPressed: _showBayarDialog,
+                                    icon: const Icon(Icons.payment),
+                                    label: const Text(
+                                      "Bayar",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 24, vertical: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                            8), // sudut melengkung
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                ],
                                 ElevatedButton.icon(
-                                  onPressed: _showBayarDialog,
-                                  icon: const Icon(Icons.payment),
+                                  onPressed: _printPdf,
+                                  icon: const Icon(Icons.print),
                                   label: const Text(
-                                    "Bayar",
+                                    "Print",
                                     style:
                                         TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red,
+                                    backgroundColor: Colors.blue,
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 24, vertical: 12),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(
+                                          8), // sudut melengkung
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 12),
                               ],
-                              ElevatedButton.icon(
-                                onPressed: _printPdf,
-                                icon: const Icon(Icons.print),
-                                label: const Text(
-                                  "Print",
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 24, vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                 ],
               ),

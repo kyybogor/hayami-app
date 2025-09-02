@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hayami_app/Pembelian/tambahbelumdibayarpembelian.dart';
+import 'package:hayami_app/belumdibayar/belumdibayarscreen.dart';
 import 'package:hayami_app/belumdibayar/tambahso.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -45,7 +47,8 @@ class _DetailPenjualanState extends State<DetailPenjualan> {
         : number is int
             ? number.toDouble()
             : number ?? 0;
-    return NumberFormat.currency(locale: "id_ID", symbol: "Rp ", decimalDigits: 0)
+    return NumberFormat.currency(
+            locale: "id_ID", symbol: "Rp ", decimalDigits: 0)
         .format(value);
   }
 
@@ -57,21 +60,57 @@ class _DetailPenjualanState extends State<DetailPenjualan> {
     final alamat = customer['alamat'] ?? 'Tidak diketahui';
     final hp = customer['hp'] ?? '-';
     final invoiceNumber = invoice['id_so1'] ?? '-';
-    final date = invoice['tgl_so'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
-    
+    final date =
+        invoice['tgl_so'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final subtotal = barang.fold<double>(
+      0,
+      (sum, item) {
+        final total = (item['total'] is num)
+            ? item['total'].toDouble()
+            : double.tryParse('${item['total']}') ?? 0;
+        return sum + total;
+      },
+    );
+
+    final imageLogo = pw.MemoryImage(
+      (await rootBundle.load('assets/image/logo.png')).buffer.asUint8List(),
+    );
 
     pdf.addPage(
       pw.MultiPage(
         build: (pw.Context context) => [
-          pw.Text('Id Transaksi: $invoiceNumber',
-              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.Center(
+            child: pw.Column(
+              children: [
+                pw.Text(
+                  'PT. Mitra Mika Cipta',
+                  style: pw.TextStyle(
+                      fontSize: 20, fontWeight: pw.FontWeight.bold),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Image(imageLogo,
+                    height: 80), // Ganti tinggi sesuai kebutuhan
+                pw.SizedBox(height: 8),
+                pw.Text(
+                    'Jalan Tanjung Pura 2 No 98B RT 07/ RW 04, Pegadungan\nJakarta Barat , DKI Jakarta, Kode Pos 11830',
+                    textAlign: pw.TextAlign.center),
+                pw.Text('0856 721 3169'),
+                pw.Text('ptmitramikacipta@yahoo.com'),
+                pw.Text('www.mitramika.com'),
+              ],
+            ),
+          ),
           pw.SizedBox(height: 10),
-          pw.Text('Customer: $contactName'),
-          pw.Text('HP: $hp'),
-          pw.Text('Alamat: $alamat'),
           pw.Text('Tanggal: $date'),
-          pw.SizedBox(height: 20),
-          pw.Text('Barang Dibeli:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.Text('Kepada Yth',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 1),
+          pw.Text('$contactName'),
+          pw.Text('$hp'),
+          pw.Text('$alamat'),
+          pw.SizedBox(height: 10),
+          pw.Text('No. Faktur: $invoiceNumber',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
           pw.Table.fromTextArray(
             headers: ['Nama', 'Qty', 'Harga per Item', 'Total'],
             data: barang.map((item) {
@@ -83,43 +122,47 @@ class _DetailPenjualanState extends State<DetailPenjualan> {
             }).toList(),
           ),
           pw.SizedBox(height: 20),
-          if ((_parseToInt(invoice['disc_nominal']) > 0) || (_parseToInt(invoice['disc_persen']) > 0))
-if ((_parseToInt(invoice['disc_nominal']) > 0) || (_parseToInt(invoice['disc_persen']) > 0) || (_parseToInt(invoice['ppn_persen']) > 0) || (_parseToInt(invoice['ongkir']) > 0))
-  pw.Column(
-    crossAxisAlignment: pw.CrossAxisAlignment.start,
-    children: [
-      if (_parseToInt(invoice['disc_nominal']) > 0)
-        pw.Text('Diskon (Rp): ${formatRupiah(invoice['disc_nominal'])}'),
-      if (_parseToInt(invoice['disc_persen']) > 0)
-        pw.Text('Diskon (%): ${invoice['disc_persen']}%'),
-      if (_parseToInt(invoice['ppn_persen']) > 0)
-        pw.Text('PPN (%): ${invoice['ppn_persen']}%'),
-      if (_parseToInt(invoice['ongkir']) > 0)
-        pw.Text('Ongkir: ${formatRupiah(invoice['ongkir'])}'),
-      pw.SizedBox(height: 10),
-    ],
-  ),
-
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              pw.Text('Total Semua:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Text(formatRupiah(totalInvoice), style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text('Subtotal:',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text(formatRupiah(subtotal),
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
             ],
           ),
-          pw.SizedBox(height: 10),
+          pw.SizedBox(height: 5),
+          if ((_parseToInt(invoice['disc_nominal']) > 0))
+            if ((_parseToInt(invoice['disc_nominal']) > 0) ||
+                (_parseToInt(invoice['ppn_persen']) > 0) ||
+                (_parseToInt(invoice['ongkir']) > 0))
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  if (_parseToInt(invoice['disc_nominal']) > 0)
+                    pw.Text('Diskon: ${formatRupiah(invoice['disc_nominal'])}'),
+                  if (_parseToInt(invoice['ppn_persen']) > 0)
+                    pw.Text('PPN (%): ${invoice['ppn_persen']}%'),
+                  if (_parseToInt(invoice['ongkir']) > 0)
+                    pw.Text('Ongkir: ${formatRupiah(invoice['ongkir'])}'),
+                  pw.SizedBox(height: 10),
+                ],
+              ),
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              pw.Text('Sisa Tagihan:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
-              pw.Text(formatRupiah(sisaTagihan), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
+              pw.Text('Grand Total:',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text(formatRupiah(totalInvoice),
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
             ],
           ),
         ],
       ),
     );
 
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+    await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
   Color _getStatusColor(String status) {
@@ -151,7 +194,8 @@ if ((_parseToInt(invoice['disc_nominal']) > 0) || (_parseToInt(invoice['disc_per
     final alamat = customer['alamat'] ?? 'Tidak diketahui';
     final hp = customer['hp'] ?? '-';
     final invoiceNumber = invoice['id_so1'] ?? '-';
-    final date = invoice['tgl_so'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final date =
+        invoice['tgl_so'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
     final tglTempo = widget.invoice['tgl_tempo'] ?? '-';
     final status = invoice['status'] ?? 'belum dibayar';
     final statusColor = _getStatusColor(status);
@@ -160,7 +204,7 @@ if ((_parseToInt(invoice['disc_nominal']) > 0) || (_parseToInt(invoice['disc_per
       onWillPop: () async {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => SalesOrderPage()),
+          MaterialPageRoute(builder: (context) => BelumDibayar()),
         );
         return false;
       },
@@ -176,7 +220,8 @@ if ((_parseToInt(invoice['disc_nominal']) > 0) || (_parseToInt(invoice['disc_per
               ),
             ),
             child: AppBar(
-              title: const Text('Tagihan', style: TextStyle(fontWeight: FontWeight.bold)),
+              title: const Text('Tagihan',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               centerTitle: true,
               backgroundColor: Colors.transparent,
               foregroundColor: Colors.white,
@@ -186,40 +231,50 @@ if ((_parseToInt(invoice['disc_nominal']) > 0) || (_parseToInt(invoice['disc_per
         ),
         body: Column(
           children: [
-            _buildHeader(invoiceNumber, contactName, alamat, hp, date, status, statusColor, tglTempo),
+            _buildHeader(invoiceNumber, contactName, alamat, hp, date, status,
+                statusColor, tglTempo),
             const SizedBox(height: 12),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text("Barang Dibeli", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                child: Text("Barang Dibeli",
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ),
             Expanded(
               child: barang.isEmpty
-                  ? const Center(child: Text("Tidak ada barang untuk invoice ini."))
+                  ? const Center(
+                      child: Text("Tidak ada barang untuk invoice ini."))
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: barang.length,
                       itemBuilder: (context, index) {
                         final item = barang[index];
-                        final harga = double.tryParse(item['harga'].toString()) ?? 0;
-                        final total = double.tryParse(item['total'].toString()) ?? 0;
+                        final harga =
+                            double.tryParse(item['harga'].toString()) ?? 0;
+                        final total =
+                            double.tryParse(item['total'].toString()) ?? 0;
                         final qty = item['qty'] ?? 0;
 
                         return Card(
                           child: ListTile(
-                            title: Text(item['nama_produk'] ?? 'Tidak Diketahui'),
+                            title:
+                                Text(item['nama_produk'] ?? 'Tidak Diketahui'),
                             subtitle: Text("$qty pcs x ${formatRupiah(harga)}"),
                             trailing: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 4, horizontal: 8),
                               decoration: BoxDecoration(
                                 color: statusColor.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 formatRupiah(total),
-                                style: TextStyle(fontWeight: FontWeight.bold, color: statusColor),
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: statusColor),
                               ),
                             ),
                           ),
@@ -230,73 +285,102 @@ if ((_parseToInt(invoice['disc_nominal']) > 0) || (_parseToInt(invoice['disc_per
             if (barang.isNotEmpty)
               Column(
                 children: [
-if (
-  (_parseToInt(widget.invoice['disc_nominal']) > 0) ||
-  (_parseToInt(widget.invoice['disc_persen']) > 0) ||
-  (_parseToInt(widget.invoice['ppn_persen']) > 0) ||
-  (_parseToInt(widget.invoice['ongkir']) > 0)
-)
-Container(
-  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-  width: double.infinity,
-  color: Colors.grey.shade100,
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          if (_parseToInt(widget.invoice['disc_nominal']) > 0)
-            RichText(
-              text: TextSpan(
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
-                children: [
-                  const TextSpan(text: 'Diskon (Rp): '),
-                  TextSpan(text: formatRupiah(widget.invoice['disc_nominal']), style: const TextStyle(color: Colors.green)),
-                ],
-              ),
-            ),
-          if (_parseToInt(widget.invoice['disc_persen']) > 0)
-            RichText(
-              text: TextSpan(
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
-                children: [
-                  const TextSpan(text: 'Diskon (%): '),
-                  TextSpan(text: "${widget.invoice['disc_persen']}%", style: const TextStyle(color: Colors.green)),
-                ],
-              ),
-            ),
-        ],
-      ),
-      const SizedBox(height: 6),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          if (_parseToInt(widget.invoice['ppn_persen']) > 0)
-            RichText(
-              text: TextSpan(
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
-                children: [
-                  const TextSpan(text: 'PPN (%): '),
-                  TextSpan(text: "${widget.invoice['ppn_persen']}%", style: const TextStyle(color: Colors.orange)),
-                ],
-              ),
-            ),
-          if (_parseToInt(widget.invoice['ongkir']) > 0)
-            RichText(
-              text: TextSpan(
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
-                children: [
-                  const TextSpan(text: 'Ongkir: '),
-                  TextSpan(text: formatRupiah(widget.invoice['ongkir']), style: const TextStyle(color: Colors.blue)),
-                ],
-              ),
-            ),
-        ],
-      ),
-    ],
-  ),
-),
+                  if ((_parseToInt(widget.invoice['disc_nominal']) > 0) ||
+                      (_parseToInt(widget.invoice['disc_persen']) > 0) ||
+                      (_parseToInt(widget.invoice['ppn_persen']) > 0) ||
+                      (_parseToInt(widget.invoice['ongkir']) > 0))
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 16),
+                      width: double.infinity,
+                      color: Colors.grey.shade100,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              if (_parseToInt(widget.invoice['disc_nominal']) >
+                                  0)
+                                RichText(
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87),
+                                    children: [
+                                      const TextSpan(text: 'Diskon (Rp): '),
+                                      TextSpan(
+                                          text: formatRupiah(
+                                              widget.invoice['disc_nominal']),
+                                          style: const TextStyle(
+                                              color: Colors.green)),
+                                    ],
+                                  ),
+                                ),
+                              // if (_parseToInt(widget.invoice['disc_persen']) >
+                              //     0)
+                              //   RichText(
+                              //     text: TextSpan(
+                              //       style: const TextStyle(
+                              //           fontSize: 14,
+                              //           fontWeight: FontWeight.bold,
+                              //           color: Colors.black87),
+                              //       children: [
+                              //         const TextSpan(text: 'Diskon (%): '),
+                              //         TextSpan(
+                              //             text:
+                              //                 "${widget.invoice['disc_persen']}%",
+                              //             style: const TextStyle(
+                              //                 color: Colors.green)),
+                              //       ],
+                              //     ),
+                              //   ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              if (_parseToInt(widget.invoice['ppn_persen']) > 0)
+                                RichText(
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87),
+                                    children: [
+                                      const TextSpan(text: 'PPN (%): '),
+                                      TextSpan(
+                                          text:
+                                              "${widget.invoice['ppn_persen']}%",
+                                          style: const TextStyle(
+                                              color: Colors.orange)),
+                                    ],
+                                  ),
+                                ),
+                              if (_parseToInt(widget.invoice['ongkir']) > 0)
+                                RichText(
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87),
+                                    children: [
+                                      const TextSpan(text: 'Ongkir: '),
+                                      TextSpan(
+                                          text: formatRupiah(
+                                              widget.invoice['ongkir']),
+                                          style: const TextStyle(
+                                              color: Colors.blue)),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   Container(
                     padding: const EdgeInsets.all(16),
                     width: double.infinity,
@@ -304,8 +388,12 @@ Container(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text("Total Semua", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text(formatRupiah(totalInvoice), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        const Text("Total Semua",
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text(formatRupiah(totalInvoice),
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -316,8 +404,16 @@ Container(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text("Sisa Tagihan", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
-                        Text(formatRupiah(sisaTagihan), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red)),
+                        const Text("Sisa Tagihan",
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black)),
+                        Text(formatRupiah(sisaTagihan),
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red)),
                       ],
                     ),
                   ),
@@ -331,12 +427,15 @@ Container(
                         ElevatedButton.icon(
                           onPressed: _printPdf,
                           icon: const Icon(Icons.print),
-                          label: const Text("Print", style: TextStyle(fontWeight: FontWeight.bold)),
+                          label: const Text("Print",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
                         ),
                       ],
@@ -350,7 +449,16 @@ Container(
     );
   }
 
-  Widget _buildHeader(String invoiceNumber, String contactName, String alamat, String hp, String date, String status, Color statusColor, String tglTempo, ) {
+  Widget _buildHeader(
+    String invoiceNumber,
+    String contactName,
+    String alamat,
+    String hp,
+    String date,
+    String status,
+    Color statusColor,
+    String tglTempo,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -360,36 +468,45 @@ Container(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(24), bottomRight: Radius.circular(24)),
+        borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(24), bottomRight: Radius.circular(24)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(invoiceNumber, style: const TextStyle(fontSize: 16, color: Colors.white70)),
+          Text(invoiceNumber,
+              style: const TextStyle(fontSize: 16, color: Colors.white70)),
           const SizedBox(height: 16),
-          Text(contactName, style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+          Text(contactName,
+              style: const TextStyle(
+                  fontSize: 18,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),
           Text(hp, style: const TextStyle(fontSize: 13, color: Colors.white)),
           const SizedBox(height: 2),
-          Text(alamat, style: const TextStyle(fontSize: 13, color: Colors.white)),
+          Text(alamat,
+              style: const TextStyle(fontSize: 13, color: Colors.white)),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 16, color: Colors.white),
+                  const Icon(Icons.calendar_today,
+                      size: 16, color: Colors.white),
                   const SizedBox(width: 6),
                   Text(date, style: const TextStyle(color: Colors.white)),
                 ],
               ),
               Row(
-  children: [
-    const Icon(Icons.calendar_today, size: 16, color: Colors.white),
-    const SizedBox(width: 6),
-    Text(tglTempo, style: const TextStyle(color: Colors.white)),
-  ],
-),
+                children: [
+                  const Icon(Icons.calendar_today,
+                      size: 16, color: Colors.white),
+                  const SizedBox(width: 6),
+                  Text(tglTempo, style: const TextStyle(color: Colors.white)),
+                ],
+              ),
             ],
           ),
         ],
