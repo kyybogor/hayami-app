@@ -85,12 +85,12 @@ class _TambahCustomerScreenState extends State<TambahCustomerScreen> {
         centerTitle: true,
         title: const Text(
           "Tambah Customer/Supplier",
-          style: TextStyle(color: Colors.blue, fontSize: 20),
+          style: TextStyle(color: Colors.white, fontSize: 20),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFF2E7D32),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.blue),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -159,7 +159,7 @@ class _TambahCustomerScreenState extends State<TambahCustomerScreen> {
                       icon: const Icon(Icons.save),
                       label: const Text("Simpan"),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: Colors.green.shade800,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),

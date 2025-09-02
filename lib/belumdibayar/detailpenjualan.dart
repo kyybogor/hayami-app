@@ -58,6 +58,7 @@ class _DetailPenjualanState extends State<DetailPenjualan> {
     final hp = customer['hp'] ?? '-';
     final invoiceNumber = invoice['id_so1'] ?? '-';
     final date = invoice['tgl_so'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
+    
 
     pdf.addPage(
       pw.MultiPage(
@@ -138,7 +139,7 @@ if ((_parseToInt(invoice['disc_nominal']) > 0) || (_parseToInt(invoice['disc_per
       case 'transaksi berulang':
         return Colors.blue;
       default:
-        return Colors.white;
+        return Colors.black;
     }
   }
 
@@ -151,6 +152,7 @@ if ((_parseToInt(invoice['disc_nominal']) > 0) || (_parseToInt(invoice['disc_per
     final hp = customer['hp'] ?? '-';
     final invoiceNumber = invoice['id_so1'] ?? '-';
     final date = invoice['tgl_so'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final tglTempo = widget.invoice['tgl_tempo'] ?? '-';
     final status = invoice['status'] ?? 'belum dibayar';
     final statusColor = _getStatusColor(status);
 
@@ -168,7 +170,7 @@ if ((_parseToInt(invoice['disc_nominal']) > 0) || (_parseToInt(invoice['disc_per
           child: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+                colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -184,7 +186,7 @@ if ((_parseToInt(invoice['disc_nominal']) > 0) || (_parseToInt(invoice['disc_per
         ),
         body: Column(
           children: [
-            _buildHeader(invoiceNumber, contactName, alamat, hp, date, status, statusColor),
+            _buildHeader(invoiceNumber, contactName, alamat, hp, date, status, statusColor, tglTempo),
             const SizedBox(height: 12),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
@@ -348,13 +350,13 @@ Container(
     );
   }
 
-  Widget _buildHeader(String invoiceNumber, String contactName, String alamat, String hp, String date, String status, Color statusColor) {
+  Widget _buildHeader(String invoiceNumber, String contactName, String alamat, String hp, String date, String status, Color statusColor, String tglTempo, ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+          colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -381,6 +383,13 @@ Container(
                   Text(date, style: const TextStyle(color: Colors.white)),
                 ],
               ),
+              Row(
+  children: [
+    const Icon(Icons.calendar_today, size: 16, color: Colors.white),
+    const SizedBox(width: 6),
+    Text(tglTempo, style: const TextStyle(color: Colors.white)),
+  ],
+),
             ],
           ),
         ],

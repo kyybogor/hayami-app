@@ -108,7 +108,7 @@ class _DetaillaporanpiutangState extends State<Detaillaporanpiutang> {
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+              colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -179,7 +179,7 @@ class _DetaillaporanpiutangState extends State<Detaillaporanpiutang> {
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+          colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

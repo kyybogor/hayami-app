@@ -117,22 +117,18 @@ class _ProdukPageState extends State<ProdukPage> {
     return Scaffold(
       drawer: const KledoDrawer(),
       appBar: AppBar(
-        title: const Text('Produk'),
+        title: const Text('Produk', style: TextStyle(color: Colors.white)),
+        backgroundColor: Color(0xFF2E7D32),
         centerTitle: true,
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {},
-          )
-        ],
+        leading: IconButton(
+    icon: const Icon(Icons.arrow_back, color: Colors.white),
+    onPressed: () {
+      Navigator.pop(context);
+    },
+  ),
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Color(0xFF2E7D32),
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -143,7 +139,7 @@ class _ProdukPageState extends State<ProdukPage> {
             _fetchProduk();
           }
         },
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       body: ListView(
         padding: EdgeInsets.zero,
@@ -192,29 +188,9 @@ class _ProdukPageState extends State<ProdukPage> {
               },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _showChart ? 'Sembunyikan' : 'Lihat Selengkapnya',
-                    style: const TextStyle(
-                        color: Colors.blue, fontWeight: FontWeight.bold),
-                  ),
-                  Icon(_showChart ? Icons.expand_less : Icons.expand_more),
-                ],
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          if (_showChart)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  const SizedBox(width: 16),
-                  _buildChartPlaceholder('Pergerakan Stok', screenWidth),
-                  _buildChartPlaceholder('Jenis Produk', screenWidth),
-                ],
-              ),
-            ),
           const SizedBox(height: 16),
 
           // Loading indikator di bagian list produk saja

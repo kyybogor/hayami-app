@@ -230,7 +230,7 @@ Widget build(BuildContext context) {
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+              colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -240,15 +240,14 @@ Widget build(BuildContext context) {
               'Tambah Tagihan',
               style: TextStyle(
                 color: Colors.white,
-                fontWeight: FontWeight.bold,
               ),
             ),
+            backgroundColor: Color(0xFF2E7D32),
             centerTitle: true,
-            backgroundColor: Colors.transparent,
             foregroundColor: Colors.white,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.close),
+              icon: const Icon(Icons.arrow_back),
               onPressed: () {
                 Navigator.pop(context, true);
               },
@@ -303,13 +302,12 @@ Widget build(BuildContext context) {
             ),
           ElevatedButton.icon(
             onPressed: _tambahItem,
-            icon: const Icon(Icons.add, color: Colors.white),
             label: const Text(
               'Tambah Item',
               style: TextStyle(color: Colors.white),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.indigo.shade700,
+              backgroundColor: Colors.green.shade800,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -338,7 +336,7 @@ Widget build(BuildContext context) {
               _simpanTagihanKeServer();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.indigo.shade900,
+              backgroundColor: Colors.green.shade800,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
@@ -579,7 +577,7 @@ class _TambahItemPageState extends State<TambahItemPage> {
       appBar: AppBar(
         title: const Text('Tambah Item'),
         centerTitle: true,
-        backgroundColor: Colors.indigo.shade700,
+        backgroundColor: Color(0xFF2E7D32),
         foregroundColor: Colors.white,
       ),
       body: ListView(
@@ -647,7 +645,7 @@ class _TambahItemPageState extends State<TambahItemPage> {
               Navigator.pop(context, item);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.indigo.shade900,
+              backgroundColor: Colors.green.shade800,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14)),

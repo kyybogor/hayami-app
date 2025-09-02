@@ -21,7 +21,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
   int totalInvoice = 0;
   int sisaTagihan = 0;
   bool isLoading = true;
-
+  bool isPaying = false;
   double discPersen = 0;
   double discNominal = 0; // ✅ Tambahan
   double ppnPersen = 0;
@@ -56,9 +56,9 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
           title: const Text(
             "Pembayaran",
             style: TextStyle(
-              fontWeight: FontWeight.bold,
               fontSize: 20,
-              color: Colors.indigo,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2E7D32),
             ),
           ),
           content: StatefulBuilder(
@@ -143,43 +143,68 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
               child: const Text("Batal"),
             ),
             ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigo,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
-              icon: const Icon(Icons.check_circle, color: Colors.white),
-              label: const Text(
-                "Bayar",
-                style: TextStyle(color: Colors.white),
-              ),
-              onPressed: () {
-                final nominalStr = nominalController.text
-                    .replaceAll(".", "")
-                    .replaceAll(",", "");
-                final ket = keteranganController.text.trim();
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.green.shade800,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+  ),
+  icon: isPaying
+      ? const SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Colors.white,
+          ),
+        )
+      : const Icon(Icons.check_circle, color: Colors.white),
+  label: Text(
+    isPaying ? "Memproses..." : "Bayar",
+    style: const TextStyle(color: Colors.white),
+  ),
+  onPressed: isPaying
+      ? null
+      : () async {
+          final nominalStr = nominalController.text
+              .replaceAll(".", "")
+              .replaceAll(",", "");
+          final ket = keteranganController.text.trim();
 
-                if (nominalStr.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Nominal harus diisi")),
-                  );
-                  return;
-                }
+          if (nominalStr.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Nominal harus diisi")),
+            );
+            return;
+          }
 
-                final nominalInt = int.parse(nominalStr);
+          final nominalInt = int.parse(nominalStr);
 
-                Navigator.pop(context);
+          setState(() {
+            isPaying = true;
+          });
 
-                prosesPembayaran(
-                  widget.invoice['id'].toString(),
-                  nominalInt,
-                  ket,
-                );
-              },
-            ),
+          try {
+            Navigator.pop(context); // Tutup dialog/modal dulu
+
+            await prosesPembayaran(
+              widget.invoice['id'].toString(),
+              nominalInt,
+              ket,
+            );
+          } catch (e) {
+            // Optional: Tampilkan error jika gagal
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Gagal melakukan pembayaran: $e")),
+            );
+          } finally {
+            setState(() {
+              isPaying = false;
+            });
+          }
+        },
+),
           ],
         );
       },
@@ -465,7 +490,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+              colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -794,7 +819,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+          colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

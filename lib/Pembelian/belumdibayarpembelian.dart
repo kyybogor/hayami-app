@@ -218,18 +218,21 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
       },
       child: Scaffold(
         appBar: AppBar(
-          centerTitle: true,
-          title:
-              const Text("Belum Dibayar", style: TextStyle(color: Colors.blue)),
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.blue),
-            onPressed: () {
-              Navigator.pop(context, dataChanged);
-            },
-          ),
-        ),
+  centerTitle: true,
+  title: const Text(
+    "Belum Dibayar",
+    style: TextStyle(color: Colors.white),
+  ),
+  backgroundColor: Color(0xFF2E7D32),
+  elevation: 0,
+  leading: IconButton(
+    icon: const Icon(Icons.arrow_back, color: Colors.white),
+    onPressed: () {
+      Navigator.pop(context, dataChanged);
+    },
+  ),
+),
+
         body: Column(
           children: [
             Padding(
@@ -259,7 +262,7 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.blue.shade200),
+              border: Border.all(color: Colors.green.shade200),
               borderRadius: BorderRadius.circular(12),
               color: Colors.white,
               boxShadow: [
@@ -272,7 +275,7 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_today, color: Colors.blue, size: 18),
+                const Icon(Icons.calendar_today, color: Colors.green, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -280,7 +283,7 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
                         ? "Pilih Tanggal Awal"
                         : DateFormat('dd-MM-yyyy').format(startDate!),
                     style: TextStyle(
-                      color: startDate == null ? Colors.grey : Colors.blue.shade800,
+                      color: startDate == null ? Colors.grey : Colors.green.shade800,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -298,7 +301,7 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.blue.shade200),
+              border: Border.all(color: Colors.green.shade200),
               borderRadius: BorderRadius.circular(12),
               color: Colors.white,
               boxShadow: [
@@ -311,7 +314,7 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.event, color: Colors.blue, size: 18),
+                const Icon(Icons.event, color: Colors.green, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -319,7 +322,7 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
                         ? "Pilih Tanggal Akhir"
                         : DateFormat('dd-MM-yyyy').format(endDate!),
                     style: TextStyle(
-                      color: endDate == null ? Colors.grey : Colors.blue.shade800,
+                      color: endDate == null ? Colors.grey : Colors.green.shade800,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -399,24 +402,25 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
           ],
         ),
         floatingActionButton: FloatingActionButton(
-          backgroundColor: Colors.blue,
-          onPressed: () async {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const TambahTagihanPage(),
-              ),
-            );
+  backgroundColor: Color(0xFF2E7D32),
+  onPressed: () async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TambahTagihanPage(),
+      ),
+    );
 
-            if (result == true) {
-              setState(() {
-                isLoading = true;
-              });
-              await fetchInvoices();
-            }
-          },
-          child: const Icon(Icons.add),
-        ),
+    if (result == true) {
+      setState(() {
+        isLoading = true;
+      });
+      await fetchInvoices();
+    }
+  },
+  child: const Icon(Icons.add, color: Colors.white),
+),
+
       ),
     );
   }

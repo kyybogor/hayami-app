@@ -87,11 +87,11 @@ class _CustomerscreenState extends State<Customerscreen> {
         appBar: AppBar(
           centerTitle: true,
           title: const Text("Customer / Supplier",
-              style: TextStyle(color: Colors.blue)),
-          backgroundColor: Colors.white,
+              style: TextStyle(color: Colors.white)),
+          backgroundColor: Color(0xFF2E7D32),
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.blue),
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () {
               Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const Dashboardscreen()));
@@ -203,7 +203,7 @@ class _CustomerscreenState extends State<Customerscreen> {
               });
             }
           },
-          backgroundColor: Colors.blue,
+          backgroundColor: Colors.green.shade800,
           child: const Icon(Icons.add, color: Colors.white),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:hayami_app/Dashboard/dashboardscreen.dart';
 import 'package:hayami_app/belumdibayar/detailbelumdibayar.dart';
 import 'package:hayami_app/belumdibayar/tambahso.dart';
 import 'package:http/http.dart' as http;
@@ -162,18 +163,24 @@ class _BelumDibayarState extends State<BelumDibayar> {
       },
       child: Scaffold(
         appBar: AppBar(
-          centerTitle: true,
-          title:
-              const Text("Belum Dibayar", style: TextStyle(color: Colors.blue)),
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.blue),
-            onPressed: () {
-              Navigator.pop(context, dataChanged);
-            },
-          ),
-        ),
+  centerTitle: true,
+  title: const Text(
+    "Belum Dibayar",
+    style: TextStyle(color: Colors.white),
+  ),
+  backgroundColor: Color(0xFF2E7D32),
+  elevation: 0,
+  leading: IconButton(
+    icon: const Icon(Icons.arrow_back, color: Colors.white),
+    onPressed: () {
+      Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => Dashboardscreen()),
+  );
+    },
+  ),
+),
+
         body: Column(
           children: [
             // Search
@@ -207,7 +214,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
                         padding: const EdgeInsets.symmetric(
                             vertical: 14, horizontal: 12),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.blue.shade200),
+                          border: Border.all(color: Colors.green.shade200),
                           borderRadius: BorderRadius.circular(12),
                           color: Colors.white,
                           boxShadow: [
@@ -221,7 +228,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
                         child: Row(
                           children: [
                             const Icon(Icons.calendar_today,
-                                color: Colors.blue, size: 18),
+                                color: Colors.green, size: 18),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -232,7 +239,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
                                 style: TextStyle(
                                   color: startDate == null
                                       ? Colors.grey
-                                      : Colors.blue.shade800,
+                                      : Colors.green.shade800,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -251,7 +258,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
                         padding: const EdgeInsets.symmetric(
                             vertical: 14, horizontal: 12),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.blue.shade200),
+                          border: Border.all(color: Colors.green.shade200),
                           borderRadius: BorderRadius.circular(12),
                           color: Colors.white,
                           boxShadow: [
@@ -265,7 +272,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
                         child: Row(
                           children: [
                             const Icon(Icons.event,
-                                color: Colors.blue, size: 18),
+                                color: Colors.green, size: 18),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -275,7 +282,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
                                 style: TextStyle(
                                   color: endDate == null
                                       ? Colors.grey
-                                      : Colors.blue.shade800,
+                                      : Colors.green.shade800,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -353,14 +360,14 @@ class _BelumDibayarState extends State<BelumDibayar> {
           ],
         ),
         floatingActionButton: FloatingActionButton(
-          backgroundColor: Colors.blue,
+          backgroundColor: Colors.green.shade800,
           onPressed: () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => SalesOrderPage()),
             );
           },
-          child: const Icon(Icons.add),
+          child: const Icon(Icons.add, color: Colors.white),
         ),
       ),
     );

@@ -34,6 +34,7 @@ flutter:
     - assets/image/hayamibaru.png
     - assets/image/hayamilogo.png
     - assets/image/nindo-logo.png
+    - assets/image/nindo.png
 
 
 flutter_icons:

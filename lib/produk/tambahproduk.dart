@@ -187,12 +187,12 @@ Widget build(BuildContext context) {
         centerTitle: true,
         title: const Text(
           "Tambah Produk",
-          style: TextStyle(color: Colors.blue, fontSize: 20),
+          style: TextStyle(color: Colors.white, fontSize: 20),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFF2E7D32),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.blue),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -310,6 +310,8 @@ Widget build(BuildContext context) {
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: Colors.green.shade800, // warna tombol hijau
+    foregroundColor: Colors.white, // warna teks putih
                 ),
                 onPressed: _submitProduk,
               ),

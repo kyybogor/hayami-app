@@ -75,7 +75,7 @@ class _LoginPageState extends State<LoginPage> {
                 padding: const EdgeInsets.only(top: 50, left: 10, right: 10),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+                    colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
                   ),
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(50),
@@ -86,14 +86,10 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     Center(
                       child: Image.asset(
-                        'assets/image/hayamilogo.png',
-                        height: 60,
+                        'assets/image/nindo.png',
+                        height: 150,
+                        width: 150,
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Silakan masukkan username dan password\nuntuk masuk ke Hayami.',
-                      style: TextStyle(color: Colors.white),
                     ),
                   ],
                 ),
@@ -153,7 +149,7 @@ class _LoginPageState extends State<LoginPage> {
                     Container(
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+                          colors: [Color(0xFF2E7D32), Color(0xFF2E7D32)],
                         ),
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -175,56 +171,7 @@ class _LoginPageState extends State<LoginPage> {
                                 style: TextStyle(color: Colors.white),
                               ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text("Atau login dengan"),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.g_mobiledata),
-                          label: const Text("Google"),
-                        ),
-                        const SizedBox(width: 10),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const OtpPage(),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.lock),
-                          label: const Text("OTP"),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text("Belum punya akun? "),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const PackageSelectionPage(),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            "Daftar sekarang",
-                            style: TextStyle(color: Colors.blue),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
+                    ),    
                   ],
                 ),
               ),

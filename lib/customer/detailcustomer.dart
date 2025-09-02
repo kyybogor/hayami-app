@@ -12,10 +12,10 @@ class Customerdetailscreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title:
-            const Text("Detail Customer", style: TextStyle(color: Colors.blue)),
+            const Text("Detail Customer", style: TextStyle(color: Colors.white)),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.blue),
+        backgroundColor: Color(0xFF2E7D32),
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 1,
       ),
       body: Padding(
@@ -81,14 +81,11 @@ class Customerdetailscreen extends StatelessWidget {
                       Navigator.of(context).pop(result);
                     }
                   },
-                  icon: const Icon(Icons.edit, color: Colors.blue, size: 18),
+                  icon: const Icon(Icons.edit, color: Colors.white, size: 18),
                   label:
-                      const Text("Edit", style: TextStyle(color: Colors.blue)),
+                      const Text("Edit", style: TextStyle(color: Colors.white)),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.blue),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    backgroundColor: Colors.green.shade800,
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
@@ -119,8 +116,8 @@ class CustomTile extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: CircleAvatar(
-        backgroundColor: Colors.blue.shade50,
-        child: Icon(icon, color: Colors.blue),
+        backgroundColor: Colors.green.shade50,
+        child: Icon(icon, color: Colors.green.shade800),
       ),
       title: Text(
         title,

@@ -49,6 +49,10 @@ class _BankDetailPageState extends State<BankDetailPage> {
             child: const Text('Batal'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.green.shade800, // warna tombol hijau
+    foregroundColor: Colors.white, // warna teks putih
+  ),
             onPressed: () async {
               final response = await http.post(
                 Uri.parse(
@@ -91,9 +95,9 @@ class _BankDetailPageState extends State<BankDetailPage> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('Detail Bank', style: TextStyle(color: Colors.blue)),
-        backgroundColor: Colors.grey[100],
-        iconTheme: const IconThemeData(color: Colors.blue),
+        title: const Text('Detail Bank', style: TextStyle(color: Colors.white)),
+        backgroundColor: Color(0xFF2E7D32),
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 1,
       ),
       body: Padding(
@@ -124,11 +128,11 @@ class _BankDetailPageState extends State<BankDetailPage> {
                   child: OutlinedButton.icon(
                     onPressed: _editBankDialog,
                     icon:
-                        const Icon(Icons.edit, color: Colors.blue, size: 18),
-                    label: const Text("Edit",
-                        style: TextStyle(color: Colors.blue)),
+                        Icon(Icons.edit, color: Colors.green.shade800, size: 18),
+                    label: Text("Edit",
+                        style: TextStyle(color: Colors.green.shade800)),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.blue),
+                      side: BorderSide(color: Colors.green.shade800),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -156,7 +160,7 @@ class _BankDetailPageState extends State<BankDetailPage> {
           children: [
             CircleAvatar(
               backgroundColor: Colors.blue[50],
-              child: Icon(icon, color: Colors.blue),
+              child: Icon(icon, color: Colors.green.shade800),
             ),
             const SizedBox(width: 16),
             Expanded(

@@ -83,15 +83,19 @@ class _KasBankPageState extends State<KasBankPage> {
               child: Text('Batal'),
             ),
             ElevatedButton(
-              onPressed: () async {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-                  Navigator.pop(context);
-                  await _submitNewBank(namaBank, noRekening);
-                }
-              },
-              child: Text('Simpan'),
-            ),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.green.shade800, // warna background hijau
+    foregroundColor: Colors.white, // warna teks/icon putih
+  ),
+  onPressed: () async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      Navigator.pop(context);
+      await _submitNewBank(namaBank, noRekening);
+    }
+  },
+  child: const Text("Simpan"), // contoh teks di tombol
+),
           ],
         );
       },
@@ -142,71 +146,12 @@ class _KasBankPageState extends State<KasBankPage> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: Colors.white,
-        title: Text('Bank', style: TextStyle(color: Colors.blue)),
+        backgroundColor: Color(0xFF2E7D32),
+        title: Text('Bank', style: TextStyle(color: Colors.white)),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.blue),
+          icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        elevation: 0.5,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.filter_alt_outlined, color: Colors.blue),
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                ),
-                builder: (context) {
-                  return Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Filter',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          value: selectedFilter,
-                          items: ['Nama Bank', 'No. Rekening']
-                              .map((filter) => DropdownMenuItem(
-                                    value: filter,
-                                    child: Text(filter),
-                                  ))
-                              .toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                selectedFilter = value;
-                              });
-                            }
-                          },
-                          decoration: InputDecoration(
-                            labelText: 'Urutkan',
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                          ),
-                        ),
-                        SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          child: Text('Terapkan'),
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: Size(double.infinity, 48),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ],
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
@@ -241,7 +186,7 @@ class _KasBankPageState extends State<KasBankPage> {
                         final bank = filteredBankData[index];
                         return ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: Colors.blueAccent,
+                            backgroundColor: Colors.green.shade800,
                             child: Icon(
                               Icons.credit_card,
                               color: Colors.white,
@@ -269,9 +214,13 @@ class _KasBankPageState extends State<KasBankPage> {
               ],
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddBankDialog,
-        child: Icon(Icons.add),
-      ),
+  onPressed: _showAddBankDialog,
+  backgroundColor: Colors.green.shade800, // warna background ijo
+  child: Icon(
+    Icons.add,
+    color: Colors.white, // warna icon putih
+  ),
+),
     );
   }
 }

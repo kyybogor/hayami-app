@@ -50,8 +50,8 @@ class _SplashscreenState extends State<Splashscreen>
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color(0xFF1976D2), // Biru terang
-              Color(0xFF0D47A1), // Biru tua
+              Color(0xFF1B5E20), // Biru terang
+              Color(0xFF43A047), // Biru tua
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -64,17 +64,8 @@ class _SplashscreenState extends State<Splashscreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Image.asset(
-                  'assets/image/hayamibaru.png',
+                  'assets/image/nindo.png',
                   width: 280,
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Memudahkan Keuangan Bisnismu',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontStyle: FontStyle.italic,
-                  ),
                 ),
                 const SizedBox(height: 30),
                 const CircularProgressIndicator(

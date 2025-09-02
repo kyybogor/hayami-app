@@ -35,7 +35,7 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
     final response = await http.post(
       url,
       body: {
-        "id_supp": widget.customer['id'].toString(), // wajib untuk edit
+        "id_supp": widget.customer['id'].toString(),
         "nm_supp": _nameController.text,
         "jenis": selectedJenis,
         "hp": _phoneController.text,
@@ -84,11 +84,11 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
       appBar: AppBar(
         centerTitle: true,
         title: const Text("Edit Customer/Supplier",
-            style: TextStyle(color: Colors.blue, fontSize: 20)),
-        backgroundColor: Colors.white,
+            style: TextStyle(color: Colors.white, fontSize: 20)),
+        backgroundColor: Color(0xFF2E7D32),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.blue),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -163,7 +163,7 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
                   ElevatedButton(
                     onPressed: _updateCustomer,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: Colors.green.shade800,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

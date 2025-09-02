@@ -221,7 +221,7 @@ void _showBayarDialog() {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 20,
-            color: Colors.indigo,
+            color: Color(0xFF2E7D32),
           ),
         ),
         content: StatefulBuilder(
@@ -309,7 +309,7 @@ void _showBayarDialog() {
               style: TextStyle(color: Colors.white),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.indigo,
+              backgroundColor: Colors.green.shade800,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -394,7 +394,7 @@ void _showBayarDialog() {
           child: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+                colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -642,7 +642,7 @@ void _showBayarDialog() {
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+          colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

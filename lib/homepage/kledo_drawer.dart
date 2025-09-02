@@ -11,8 +11,6 @@ class KledoDrawer extends StatelessWidget {
     {'icon': Icons.local_shipping, 'title': 'Inventori'},
     {'icon': Icons.bar_chart, 'title': 'Laporan'},
     {'icon': Icons.account_balance, 'title': 'Kas & Bank'},
-    {'icon': Icons.settings, 'title': 'Pengaturan'},
-    {'icon': Icons.help_outline, 'title': 'FAQ'},
     {'icon': Icons.exit_to_app, 'title': 'Keluar'},
   ];
 

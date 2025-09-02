@@ -15,8 +15,10 @@ import 'package:hayami_app/customer/customer.dart';
 import 'package:hayami_app/kas%20&%20bank/kasdanbank.dart';
 import 'package:hayami_app/kasbank/kasbank.dart';
 import 'package:hayami_app/kontak/kontakscreen.dart';
+import 'package:hayami_app/laporan/laporanpiutang.dart';
 import 'package:hayami_app/laporan/laporanscreen.dart';
 import 'package:hayami_app/laporan/penjualan/penjualanprodukperpelanggan.dart';
+import 'package:hayami_app/laporan/stockreport.dart';
 import 'package:hayami_app/pemesanan/pemesananscreen.dart';
 import 'package:hayami_app/penawaran/penawaranscreen.dart';
 import 'package:hayami_app/produk/produk.dart';
@@ -50,11 +52,11 @@ class _DashboardscreenState extends State<Dashboardscreen> {
       'label': 'Pembelian',
       'color': Colors.blueAccent
     },
-    {'icon': Icons.money_off, 'label': 'Biaya', 'color': Colors.orangeAccent},
+    {'icon': Icons.money_off, 'label': 'Piutang', 'color': Colors.orangeAccent},
     {'icon': Icons.inventory, 'label': 'Produk', 'color': Colors.green},
     {'icon': Icons.bar_chart, 'label': 'Customer', 'color': Colors.purple},
     {'icon': Icons.account_balance, 'label': 'Bank', 'color': Colors.teal},
-    {'icon': Icons.domain, 'label': 'Aset Tetap', 'color': Colors.indigo},
+    {'icon': Icons.domain, 'label': 'Stock', 'color': Colors.indigo},
     {'icon': Icons.contacts, 'label': 'Kontak', 'color': Colors.brown},
   ];
 
@@ -63,24 +65,20 @@ class _DashboardscreenState extends State<Dashboardscreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
+        toolbarHeight: 120,
         elevation: 0,
         centerTitle: true,
         title: Image.asset(
-          'assets/image/hayamilogo.png',
-          height: 48,
+          'assets/image/nindo.png',
+          height: 100,
           fit: BoxFit.contain,
         ),
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: Icon(Icons.notifications_none, color: Colors.white),
-          )
-        ],
+        
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+              colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -92,30 +90,6 @@ class _DashboardscreenState extends State<Dashboardscreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              padding: const EdgeInsets.all(20),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Hi pengguna!',
-                      style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white)),
-                  SizedBox(height: 6),
-                  Text('Yuk mudahkan keuangan bisnis dengan Hayami',
-                      style: TextStyle(color: Colors.white70, fontSize: 14)),
-                ],
-              ),
-            ),
             Container(
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(16),
@@ -155,11 +129,11 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                               MaterialPageRoute(
                                   builder: (_) => const BelumDibayarPembelian()));
                           break;
-                        case 'Biaya':
+                        case 'Piutang':
                           Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const BiayaPage()));
+                                  builder: (_) => const LaporanPiutang()));
                           break;
                         case 'Produk':
                           Navigator.push(
@@ -177,11 +151,11 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                           Navigator.push(context,
                               MaterialPageRoute(builder: (_) => KasBankPage()));
                           break;
-                        case 'Aset Tetap':
+                        case 'Stock':
                           Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const AssetPage()));
+                                  builder: (_) => const StockReportPage()));
                           break;
                         case 'Kontak':
                           Navigator.push(
@@ -358,16 +332,14 @@ class _KledoDrawerState extends State<KledoDrawer> {
         'Penawaran Pembelian'
       ]
     },
-    {'icon': Icons.money_off, 'title': 'Biaya'},
+    {'icon': Icons.money_off, 'title': 'Piutang'},
     {'icon': Icons.inventory_2, 'title': 'Produk'},
     {'icon': Icons.local_shipping, 'title': 'Inventori'},
     {'icon': Icons.bar_chart, 'title': 'Customer'},
     {'icon': Icons.account_balance, 'title': 'Bank'},
     {'icon': Icons.person, 'title': 'Akun'},
-    {'icon': Icons.domain, 'title': 'Aset Tetap'},
+    {'icon': Icons.domain, 'title': 'Stock'},
     {'icon': Icons.contacts, 'title': 'Kontak'},
-    {'icon': Icons.settings, 'title': 'Pengaturan'},
-    {'icon': Icons.help_outline, 'title': 'FAQ'},
     {'icon': Icons.exit_to_app, 'title': 'Keluar'},
   ];
 
@@ -378,9 +350,9 @@ class _KledoDrawerState extends State<KledoDrawer> {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color(0xFF1E3C72),
-              Color.fromARGB(255, 33, 83, 167),
-              Color(0xFF2A5298), // Menahan warna akhir biar flat di bawah
+              Color(0xFF1B5E20),
+              Color.fromARGB(255, 56, 137, 60),
+              Color(0xFF2E7D32), // Menahan warna akhir biar flat di bawah
             ],
             stops: [0.2, 0.6, 0.5], // Stop gradasi di tengah
             begin: Alignment.topLeft,
@@ -392,36 +364,28 @@ class _KledoDrawerState extends State<KledoDrawer> {
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: const BoxDecoration(color: Colors.transparent),
-              child: Stack(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Hayami',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold)),
-                      SizedBox(height: 8),
-                      Text('User',
-                          style: TextStyle(color: Colors.white, fontSize: 16)),
-                      Text('Your Instation',
-                          style:
-                              TextStyle(color: Colors.white70, fontSize: 14)),
-                    ],
-                  ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+  decoration: const BoxDecoration(color: Colors.transparent),
+  child: Stack(
+    children: [
+      Center(
+        child: Image.asset(
+          'assets/image/nindo.png', // ganti path sesuai logomu
+          height: 100,               // atur sesuai kebutuhan
+          fit: BoxFit.contain,
+        ),
+      ),
+      Positioned(
+        top: 0,
+        right: 0,
+        child: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+    ],
+  ),
+),
+
             ...menuItems.asMap().entries.map((entry) {
               final index = entry.key;
               final item = entry.value;
@@ -542,8 +506,8 @@ class _KledoDrawerState extends State<KledoDrawer> {
                             destination = const Dashboardscreen();
                           }
 
-                          if (item['title'] == 'Biaya') {
-                            destination = const BiayaPage();
+                          if (item['title'] == 'Piutang') {
+                            destination = const LaporanPiutang();
                           }
 
                           if (item['title'] == 'Produk') {
@@ -558,8 +522,8 @@ class _KledoDrawerState extends State<KledoDrawer> {
                             destination = const Customerscreen();
                           }
 
-                          if (item['title'] == 'Aset Tetap') {
-                            destination = const AssetPage();
+                          if (item['title'] == 'Stock') {
+                            destination = const StockReportPage();
                           }
 
                           if (item['title'] == 'Kontak') {

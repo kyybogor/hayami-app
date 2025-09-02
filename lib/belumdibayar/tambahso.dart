@@ -55,6 +55,7 @@ final TextEditingController tglSoController = TextEditingController();
   String? selectedProductId;
   String? selectedSalesId;    // dari dropdown sales
   String? selectedBankId;  
+  bool isSaving = false;
 bool isFormValid() {
   return (selectedCustomerId != null &&
           selectedBankId != null &&
@@ -109,100 +110,102 @@ Future<void> fetchSales() async {
   }
   
 Future<void> saveCustomerData() async {
-  final prefs = await SharedPreferences.getInstance();
-  final idUser = prefs.getString('id_user');
+    final prefs = await SharedPreferences.getInstance();
+    final idUser = prefs.getString('id_user');
 
-  if (idUser == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('User tidak ditemukan. Silakan login ulang.')),
-    );
-    return;
-  }
-
-  try {
-    final now = DateTime.now();
-    final dibuatTgl = DateFormat('yyyy-MM-dd HH:mm:ss').format(now);
-
-    DateTime baseDate;
-    try {
-      baseDate = DateFormat("yyyy-MM-dd").parse(tglSoController.text);
-    } catch (_) {
-      baseDate = DateTime.now();
+    if (idUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('User tidak ditemukan. Silakan login ulang.')),
+      );
+      return;
     }
-    final tglTempo = DateFormat("yyyy-MM-dd").format(
-      baseDate.add(Duration(days: int.tryParse(tempoController.text) ?? 0)),
-    );
 
-    final so1 = {
-      "tgl_so": tglSoController.text,
-      "id_customer": selectedCustomerId ?? "",
-      "disc_nominal": discRpController.text,
-      "disc_persen": discPercentController.text,
-      "ppn_persen": ppnPercentController.text,
-      "net_total": _hitungNetTotal().toStringAsFixed(0),
-      "hutang": (tempoController.text.trim() == "0" || tempoController.text.trim().toLowerCase() == "cash")
-    ? "0"
-    : _hitungNetTotal().toStringAsFixed(0),
-      "dibuat_oleh": idUser,
-      "dibuat_tgl": dibuatTgl,
-      "status": "1",
-      "ket": noteController.text,
-      "ongkir": ongkirController.text.replaceAll('.', ''),
-      "kode_unik": (int.tryParse(kodeUnikController.text) ?? 0).toString(),
-      "no_batch": "1",
-      "tempo": tempoController.text,
-      "tgl_tempo": tglTempo,
-      "salesperson": selectedSalesId ?? (selectedSales ?? ""),
-      "id_bank": selectedBankId ?? "",
-    };
+    try {
+      final now = DateTime.now();
+      final dibuatTgl = DateFormat('yyyy-MM-dd HH:mm:ss').format(now);
 
-    final List<Map<String, dynamic>> so2 = orderItems.map((item) {
-      final totalPrice  = (item['price'] as num) * (item['qty'] as num);
-      final discPercent = (item['disc'] as num);
-      final discNominal = (totalPrice * (discPercent / 100)).round();
+      DateTime baseDate;
+      try {
+        baseDate = DateFormat("yyyy-MM-dd").parse(tglSoController.text);
+      } catch (_) {
+        baseDate = DateTime.now();
+      }
+      final tglTempo = DateFormat("yyyy-MM-dd").format(
+        baseDate.add(Duration(days: int.tryParse(tempoController.text) ?? 0)),
+      );
 
-      return {
-        "id_product": item['id_product'].toString(),
-        "qty": (item['qty'] as num).toString(),
-        "harga": (item['price'] as num).toStringAsFixed(0),
-        "total": (totalPrice - discNominal).toStringAsFixed(0),
-        "disc_nominal": discNominal.toString(),
-        "disc_persen": discPercent.toString(),
-        "jenis": "stock",
+      final so1 = {
+        "tgl_so": tglSoController.text,
+        "id_customer": selectedCustomerId ?? "",
+        "disc_nominal":
+            int.tryParse(discRpController.text.replaceAll('.', '')) ?? 0,
+        "disc_persen": int.tryParse(discPercentController.text) ?? 0,
+        "ppn_persen": int.tryParse(ppnPercentController.text) ?? 0,
+        "net_total": _hitungNetTotal().toStringAsFixed(0),
+        "hutang": (tempoController.text.trim() == "0" ||
+                tempoController.text.trim().toLowerCase() == "cash")
+            ? "0"
+            : _hitungNetTotal().toStringAsFixed(0),
+        "dibuat_oleh": idUser,
+        "dibuat_tgl": dibuatTgl,
+        "status": "1",
+        "ket": noteController.text,
+        "ongkir": int.tryParse(ongkirController.text.replaceAll('.', '')) ?? 0,
+        "kode_unik": int.tryParse(kodeUnikController.text) ?? 0,
+        "no_batch": "1",
+        "tempo": tempoController.text,
+        "tgl_tempo": tglTempo,
+        "salesperson": selectedSalesId ?? (selectedSales ?? ""),
+        "id_bank": selectedBankId ?? "",
       };
-    }).toList();
 
-    final body = jsonEncode({"so1": so1, "so2": so2});
-    final url = Uri.parse("http://192.168.1.3/nindo/input_so_mobile.php");
-    final response = await http.post(url,
-        headers: {"Content-Type": "application/json"},
-        body: body);
+      final List<Map<String, dynamic>> so2 = orderItems.map((item) {
+        final totalPrice = (item['price'] as num) * (item['qty'] as num);
+        final discPercent = (item['disc'] as num);
+        final discNominal = (totalPrice * (discPercent / 100)).round();
 
-    if (response.statusCode == 200) {
-      final result = jsonDecode(response.body);
-if (result['success'] == true && result['invoice'] != null) {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => DetailPenjualan(invoice: result['invoice']),
-    ),
-  );
-} else {
+        return {
+          "id_product": item['id_product'].toString(),
+          "qty": (item['qty'] as num).toString(),
+          "harga": (item['price'] as num).toStringAsFixed(0),
+          "total": (totalPrice - discNominal).toStringAsFixed(0),
+          "disc_nominal": discNominal,
+          "disc_persen": discPercent,
+          "jenis": "stock",
+        };
+      }).toList();
+
+      final body = jsonEncode({"so1": so1, "so2": so2});
+      final url = Uri.parse("http://192.168.1.3/nindo/input_so_mobile.php");
+      final response = await http.post(url,
+          headers: {"Content-Type": "application/json"}, body: body);
+
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        if (result['success'] == true && result['invoice'] != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetailPenjualan(invoice: result['invoice']),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Gagal: ${result['message']}")),
+          );
+        }
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Gagal: ${result['message']}")),
+          SnackBar(content: Text("Server error: ${response.statusCode}")),
         );
       }
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Server error: ${response.statusCode}")),
+        SnackBar(content: Text("Error: $e")),
       );
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error: $e")),
-    );
   }
-}
 
 // fungsi kecil untuk hitung net total biar ringkas
 double _hitungNetTotal() {
@@ -465,13 +468,12 @@ Widget productInputSection() {
           SizedBox(width: 5),
           ElevatedButton.icon(
             onPressed: isFormValid ? addItem : null, // <- validasi
-            icon: Icon(Icons.add),
             label: Text("Tambah Produk"),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF2E3A87),
+              backgroundColor: Colors.green.shade800,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              minimumSize: Size(120, 48),
+              minimumSize: Size(173, 55),
             ),
           )
         ],
@@ -823,7 +825,7 @@ Widget build(BuildContext context) {
     "Sales Order",
     style: TextStyle(color: Colors.white),
   ),
-  backgroundColor: Color(0xFF2E3A87),
+  backgroundColor: Color(0xFF2E7D32),
   iconTheme: IconThemeData(color: Colors.white),
   leading: IconButton(
     icon: Icon(Icons.arrow_back),
@@ -899,17 +901,43 @@ Widget build(BuildContext context) {
                   ),
                   SizedBox(width: 8),
                   ElevatedButton(
-  onPressed: isFormValid()
+  onPressed: isFormValid() && !isSaving
       ? () async {
-          await saveCustomerData();  
-          resetForm();              // <-- langsung reset setelah save
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Transaksi berhasil disimpan")),
-          );
+          setState(() {
+            isSaving = true; // Disable button
+          });
+
+          try {
+            await saveCustomerData();
+            resetForm();
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Transaksi berhasil disimpan")),
+            );
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Gagal menyimpan: $e")),
+            );
+          } finally {
+            setState(() {
+              isSaving = false; // Re-enable button after process
+            });
+          }
         }
       : null,
-  child: const Text('Save', style: TextStyle(color: Colors.white)),
-  style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
+  child: isSaving
+      ? const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            color: Colors.white,
+            strokeWidth: 2,
+          ),
+        )
+      : const Text('Save', style: TextStyle(color: Colors.white)),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.green.shade800,
+  ),
 ),
                 ],
               ),
@@ -924,7 +952,7 @@ Widget build(BuildContext context) {
                     }
                   : null, // <- disable tombol Save kalau kosong
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigo,
+                backgroundColor: Colors.green.shade800,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 textStyle:

@@ -103,11 +103,11 @@ class _LaporanPiutangState extends State<LaporanPiutang> {
       appBar: AppBar(
         centerTitle: true,
         title:
-            const Text("Laporan Piutang", style: TextStyle(color: Colors.blue)),
-        backgroundColor: Colors.white,
+            const Text("Laporan Piutang", style: TextStyle(color: Colors.white)),
+        backgroundColor: Color(0xFF2E7D32),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.blue),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
